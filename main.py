@@ -1,5 +1,6 @@
 # import logging
 import os
+import re
 from time import sleep
 from parse_config import parse_config
 
@@ -89,9 +90,26 @@ def manual_send_command(device):
 
 
 def check_icmp(device, ip_list, conn_session=None):
+    regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
+    result = dict()
+    if not (type(ip_list) == list):
+        ip_list = [ip_list]
     session = get_device_session(device, conn_session)
-    for ip in ip_list:
-        pass
+    if session.isalive():
+        try:
+            for ip in ip_list:
+                response = send_command(device, CHECK_ICMP % ip, conn_session=session)
+                ping_count = re.findall(regx, response.result)
+                if int(ping_count[0][1]) >= 3:
+                    result.update({ip: ping_count[0]})
+                    print(f'ICMP {ip} is True')
+                else:
+                    result.update({ip: False})
+                    print(f'ICMP {ip} is False')
+        finally:
+            close_session(session, conn_session)
+    return result
+
 
 
 def main():
@@ -103,8 +121,10 @@ def main():
                 # GET_CONFIG
                 ]
     for device in device_list:
-        send_command(device, GET_CONFIG, print_result=False)
-        send_commands(device, commands)
+        # send_command(device, GET_CONFIG, print_result=False)
+        # send_commands(device, commands)
+        icmp = check_icmp(device, ['1.1.1.1','8.8.8.8','4.1.8.8'])
+        if icmp: print(icmp)
 
 
 if __name__ == "__main__":
