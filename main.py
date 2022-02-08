@@ -1,12 +1,13 @@
-import logging
+# import logging
 import os
 from time import sleep
+from parse_config import parse_config
 
 import yaml
 from scrapli import Scrapli
 
 # set the name for the logfile and the logging level... thats about it for bare minimum!
-logging.basicConfig(filename="scrapli.log", level=logging.DEBUG)
+# logging.basicConfig(filename="scrapli.log", level=logging.DEBUG)
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 '''
@@ -18,23 +19,62 @@ REMOTE_NODE_FILE = 'remote_node.yaml'
   transport: ssh2
 '''
 
-  
 GET_IP = '/ip address print'
-CHECK_ICMP = '/ping %s count=3'
+CHECK_ICMP = '/ping %s count=5'
 GET_CONFIG = '/export compact'
 GET_PPP_ACTIVE = '/ppp active print'
 
 
-def send_commands(device, commands):
-    with Scrapli(**device) as session:
-        sleep(0.125)
-        if type(commands) != list:
-            commands = [commands]
-        for command in commands:
-            resp = session.send_command(command, strip_prompt = False)
-            print('\n'+'---', device['transport'], '---\t', resp.elapsed_time)
+def get_device_session(device, conn_session=None):
+    if not conn_session:
+        session = Scrapli(**device)
+        try:
+            print(f'\n{"-" * 50}\nConnecting to host {session.host} via {session.transport_name}:{session.port}...')
+            session.open()
+            if session.isalive():
+                print('Connected')
+        except:
+            print(f'!!! Failed connect to host {session.host} via {session.transport_name}:{session.port}')
+            return session
+    else:
+        session = conn_session
+    return session
+
+
+def close_session(session, conn_session=None):
+    if not conn_session:
+        session.close()
+        print(f'Host {session.host} disconnected via {session.transport_name}:{session.port}')
+
+
+def send_command(device, command, print_result=True, conn_session=None):
+    session = get_device_session(device, conn_session)
+    response = None
+    if session.isalive():
+        try:
             print(session.get_prompt(), command)
-            # print('\n', resp.result)
+            response = session.send_command(command)
+            if print_result:
+                print(response.result)
+            print('elapsed time =', response.elapsed_time)
+        finally:
+            close_session(session, conn_session)
+    return response
+
+
+def send_commands(device, commands, print_result=True):
+    response_list = []
+    session = get_device_session(device)
+    if session.isalive():
+        try:
+            if type(commands) != list:
+                commands = [commands]
+            for command in commands:
+                response = send_command(device, command, print_result=print_result, conn_session=session)
+                response_list.append(response)
+        finally:
+            close_session(session)
+    return response_list
 
 
 def manual_send_command(device):
@@ -48,14 +88,24 @@ def manual_send_command(device):
             # print(resp.genie_parse_output())
 
 
+def check_icmp(device, ip_list, conn_session=None):
+    session = get_device_session(device, conn_session)
+    for ip in ip_list:
+        pass
+
+
 def main():
     with open(REMOTE_NODE_FILE, 'rt') as file_yaml:
         device_list = yaml.safe_load(file_yaml.read())
+    commands = [GET_IP,
+                CHECK_ICMP % '4.1.8.8',
+                CHECK_ICMP % '8.8.8.8',
+                # GET_CONFIG
+                ]
     for device in device_list:
-        send_commands(device, [GET_IP, CHECK_ICMP % '8.8.8.8', GET_CONFIG])
-        # send_commands(device, CHECK_ICMP % '8.8.8.8')
-        # send_commands(device,GET_CONFIG)
-    # manual_send_command(device_list[0])
+        send_command(device, GET_CONFIG, print_result=False)
+        send_commands(device, commands)
+
 
 if __name__ == "__main__":
     main()
