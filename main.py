@@ -150,7 +150,8 @@ async def check_icmp(device, ip_list, conn_session=None, print_result=True):
                     print(f'ICMP {ip} is False')
         finally:
             await close_session(device, session, conn_session)
-    else: return None
+    else:
+        return None
     return result
 
 
@@ -169,7 +170,7 @@ def main():
         device_list += yaml.safe_load(file_yaml.read())
 
     ip_list = [
-        '8.8.8.8',
+        '10.76.0.1',
         # '1.1.1.1',
         # '2.2.2.2',
         # '4.1.8.8',
@@ -181,8 +182,8 @@ def main():
 
     coroutines = []
     coroutines += create_coroutine_list(check_icmp, device_list, ip_list=ip_list)
-    coroutines += create_coroutine_list(send_command,device_list, command=GET_CONFIG, print_result = False)
-    coroutines += (create_coroutine_list(send_commands, device_list, commands=[GET_IP, GET_NAME]))
+    # coroutines += create_coroutine_list(send_command, device_list, command=GET_CONFIG, print_result=False)
+    coroutines += (create_coroutine_list(send_commands, device_list, commands=[GET_NAME]))
 
     run_coroutines = get_coroutines_for_run(coroutines)
     asyncio.run(run_coroutines)
