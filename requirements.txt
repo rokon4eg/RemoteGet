@@ -1,1 +1,2 @@
-scrapli~=2022.1.30
+scrapli
+PyYAML

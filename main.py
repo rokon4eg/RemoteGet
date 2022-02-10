@@ -1,19 +1,13 @@
-# import logging
 import asyncio
-import os
 import re
 from datetime import date
-from time import sleep
-
-from scrapli.exceptions import ScrapliException, ScrapliConnectionError
-
+from typing import List, Coroutine
+from scrapli.exceptions import ScrapliException
+import yaml
 from parse_config import parse_config
 
-import yaml
-from scrapli import Scrapli, AsyncScrapli
 
-# set the name for the logfile and the logging level... thats about it for bare minimum!
-# logging.basicConfig(filename="scrapli.log", level=logging.DEBUG)
+from scrapli import Scrapli, AsyncScrapli
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 '''
@@ -26,141 +20,192 @@ REMOTE_NODE_FILE = 'remote_node.yaml'
 '''
 SLEEP = 0.1
 
-GET_IP = '/ip address print'
-SEND_PING = '/ping %s count=5'
-GET_CONFIG = '/export compact'
-GET_PPP_ACTIVE = '/ppp active print'
-GET_NAME = '/system identity print'
-
 device_list = []
 
 
-async def get_device_session(device, conn_session=None):
-    if not conn_session:
-        session = AsyncScrapli(**device)
+class DeviceManagement:
+    """
+    Класс отвечает за асинхронное выполнение команд на одном устройстве
+    """
+
+    def __init__(self, device):
+        self.device = device
+        # self.conn_session = conn_session
+        self.session = None  # self.open_session()
+
+    async def open_session(self):
+        try:
+            if self.session.isalive:
+                exit()
+        except AttributeError:
+            self.session = AsyncScrapli(**self.device)
         # await
         await asyncio.sleep(SLEEP)
+        # self.session = session
         try:
-            id = device_list.index(device)
-            print(f'[{id}]: Connecting to host {session.host} via {session.transport_name}:{session.port}...')
-            await session.open()
-            if session.isalive():
-                print(f'[{id}]: Connected to host {session.host} via {session.transport_name}:{session.port}')
+            id = device_list.index(self.device)
+            print(
+                f'[{id}]: Connecting to host {self.session.host} via {self.session.transport_name}:{self.session.port}...')
+            await self.session.open()
+            if self.session.isalive():
+                print(
+                    f'[{id}]: Connected to host {self.session.host} via {self.session.transport_name}:{self.session.port}')
         except Exception as err:
-            print(f'[{id}]: !!! Error from host {session.host} via {session.transport_name}:{session.port}\n'
-                  f'{err}')
-    else:
-        session = conn_session
-    return session
+            print(
+                f'[{id}]: !!! Error from host {self.session.host} via {self.session.transport_name}:{self.session.port}\n'
+                f'{err}')
+        # else:
+        #     self.session = self.conn_session
+        return self.session
 
-
-async def close_session(device, session, conn_session=None):
-    if not conn_session:
+    async def close_session(self):
+        # if not self.conn_session:
+        # self.session = session
         try:
-            id = device_list.index(device)
-            await session.close()
-            print(f'[{id}]: Host {session.host} disconnected via {session.transport_name}:{session.port}')
+            id = device_list.index(self.device)
+            await self.session.close()
+            print(f'[{id}]: Host {self.session.host} disconnected'
+                  f' via {self.session.transport_name}:{self.session.port}')
         except ScrapliException or OSError as err:
-            print(f'[{id}]: !!! Error from host {session.host} via {session.transport_name}:{session.port}\n'
+            print(f'[{id}]: !!! Error from host {self.session.host}'
+                  f' via {self.session.transport_name}:{self.session.port}\n'
                   f'{err}')
-
-
-async def send_command(device, command, print_result=True, conn_session=None):
-    session = await get_device_session(device, conn_session)
-    response = None
-    if session.isalive():
-        try:
-            pr = await session.get_prompt()
-            await asyncio.sleep(SLEEP)
-            # print(pr)
-
-            response = await session.send_command(command)
-            id = device_list.index(device)
-            print(f'{"-" * 50}\n[{id}]: Result from host {session.host} via {session.transport_name}:{session.port}')
-            print(pr, response.channel_input)
-            if print_result:
-                print(response.result)
-            else:
-                print(f'--- No output. Variable "print_result" set is {print_result}')
-            print('elapsed time =', response.elapsed_time)
-        finally:
-            await close_session(device, session, conn_session)
-    return response
-
-
-async def send_commands(device, commands, print_result=True, conn_session=None):
-    response_list = []
-    session = await get_device_session(device, conn_session)
-    if session.isalive():
-        try:
-            if type(commands) != list:
-                commands = [commands]
-            for command in commands:
-                response = await send_command(device, command, print_result=print_result, conn_session=session)
-                response_list.append(response)
-        finally:
-            await close_session(device, session)
-    else:
         return None
-    return response_list
 
-
-async def manual_send_command(device):
-    try:
-        async with AsyncScrapli(**device) as session:
-            sleep(0.25)
-            while True:
-                # session.send_command('\n', strip_prompt=False)
-                # print('1')
-                # prompt = session.get_prompt()
-                # async for prompt in session.get_prompt():
-                command = input()
-                if command.lower() == ('q' or 'exit'):
-                    break
-                resp = await session.send_command(command, strip_prompt=False)
-                # print(session.get_prompt())
-                print(resp.result)
-                # print(resp.genie_parse_output())
-    except ScrapliException as err:
-        print(err)
-    except asyncio.exceptions.TimeoutError:
-        print("asyncio.exceptions.TimeoutError", device["host"])
-
-
-async def check_icmp(device, ip_list, conn_session=None, print_result=True):
-    regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
-    result = dict()
-    if not (type(ip_list) == list):
-        ip_list = [ip_list]
-    session = await get_device_session(device, conn_session)
-    if session.isalive():
-        try:
-            for ip in ip_list:
-                response = await send_command(device, SEND_PING % ip, conn_session=session, print_result=print_result)
-                ping_count = re.findall(regx, response.result)
-                if int(ping_count[0][1]) >= 3:
-                    date.today()
-                    result.update({ip:
-                                       {str(date.today()): ping_count[0]}
-                                   })
-                    print(f'ICMP {ip} is True')
+    async def send_command(self, command, print_result=True):
+        self.session = await self.open_session()
+        response = None
+        if self.session.isalive():
+            try:
+                pr = await self.session.get_prompt()
+                await asyncio.sleep(SLEEP)
+                response = await self.session.send_command(command)
+                id = device_list.index(self.device)
+                print(f'{"-" * 50}\n[{id}]: Result from host {self.session.host}'
+                      f' via {self.session.transport_name}:{self.session.port}')
+                print(pr, response.channel_input)
+                if print_result:
+                    print(response.result)
                 else:
-                    result.update({ip:
-                                       {str(date.today()): False}})
-                    print(f'ICMP {ip} is False')
-        finally:
-            await close_session(device, session, conn_session)
-    else:
-        return None
-    return result
+                    print(f'--- No output. Variable "print_result" set is {print_result}')
+                print('elapsed time =', response.elapsed_time)
+            finally:
+                await self.close_session()
+        return response
+
+    async def send_commands(self, commands, print_result=True):
+        response_list = []
+        self.session = await self.open_session()
+        if self.session.isalive():
+            try:
+                if type(commands) != list:
+                    commands = [commands]
+                for command in commands:
+                    response = await self.send_command(command, print_result=print_result)
+                    response_list.append(response)
+            finally:
+                await self.close_session()
+        else:
+            return None
+        return response_list
 
 
-async def get_coroutines_for_run(coroutines):
-    return await asyncio.gather(*coroutines)
+class CommandRunner(DeviceManagement):
+    """
+    Класс реализует расширенное выполнение команд на одном устройстве
+    """
+
+    def __init__(self, device):
+        super().__init__(device)
+        self.GET_IP = '/ip address print'
+        self.SEND_PING = '/ping %s count=5'
+        self.GET_CONFIG = '/export compact'
+        self.GET_PPP_ACTIVE = '/ppp active print'
+        self.GET_NAME = '/system identity print'
+
+    async def check_icmp(self, ip_list, print_result=True):
+        regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
+        result = dict()
+        if not (type(ip_list) == list):
+            ip_list = [ip_list]
+        await self.open_session()
+        if self.session.isalive():
+            try:
+                for ip in ip_list:
+                    response = await self.send_command(self.SEND_PING % ip, print_result=print_result)
+                    ping_count = re.findall(regx, response.result)
+                    if int(ping_count[0][1]) >= 3:
+                        date.today()
+                        result.update({ip:
+                                           {str(date.today()): ping_count[0]}
+                                       })
+                        print(f'ICMP {ip} is True')
+                    else:
+                        result.update({ip:
+                                           {str(date.today()): False}})
+                        print(f'ICMP {ip} is False')
+            finally:
+                await self.close_session()
+        return result
+
+    async def get_config(self, print_result=False):
+        return await self.send_command(self.GET_CONFIG, print_result=print_result)
+
+    async def get_any_command(self, command, print_result=True):
+        return await self.send_command(command, print_result)
+
+    # async def manual_send_command(device):
+    #     try:
+    #         async with AsyncScrapli(**device) as session:
+    #             sleep(0.25)
+    #             while True:
+    #                 # session.send_command('\n', strip_prompt=False)
+    #                 # print('1')
+    #                 # prompt = session.get_prompt()
+    #                 # async for prompt in session.get_prompt():
+    #                 command = input()
+    #                 if command.lower() == ('q' or 'exit'):
+    #                     break
+    #                 resp = await session.send_command(command, strip_prompt=False)
+    #                 # print(session.get_prompt())
+    #                 print(resp.result)
+    #                 # print(resp.genie_parse_output())
+    #     except ScrapliException as err:
+    #         print(err)
+    #     except asyncio.exceptions.TimeoutError:
+    #         print("asyncio.exceptions.TimeoutError", device["host"])
 
 
-def create_coroutine_list(func, devices, *ars, **kwargs):
-    return [func(device=device, *ars, **kwargs) for device in devices]
+class DevicesCommander:
+    """
+    Класс реализует асинхронное выполнение команд сразу на нескольких устройствах
+    """
+
+    def __init__(self, device_list, coroutines: List[Coroutine]=None):
+        self.device_list = device_list
+        self._coroutines = []
+        if not (coroutines is None):
+            self.set_coroutines(coroutines)
+
+    def append_coroutine(self, coroutine: Coroutine):
+        self._coroutines.append(coroutine)
+
+    def add_coroutines(self, coroutines: List[Coroutine]):
+        self._coroutines += coroutines
+
+    def set_coroutines(self, coroutines: List[Coroutine]):
+        self._coroutines = coroutines
+
+    def clear_coroutines(self):
+        self._coroutines = []
+
+    async def get_coroutines_for_run(self):
+        return await asyncio.gather(*self._coroutines)
+
+    def run(self):
+        run_coroutines = self.get_coroutines_for_run()
+        asyncio.run(run_coroutines)
+        self.clear_coroutines()
 
 
 def main():
@@ -180,13 +225,13 @@ def main():
         '1.1.1.1'
     ]
 
-    coroutines = []
-    coroutines += create_coroutine_list(check_icmp, device_list, ip_list=ip_list)
-    # coroutines += create_coroutine_list(send_command, device_list, command=GET_CONFIG, print_result=False)
-    coroutines += (create_coroutine_list(send_commands, device_list, commands=[GET_NAME]))
-
-    run_coroutines = get_coroutines_for_run(coroutines)
-    asyncio.run(run_coroutines)
+    devcom = DevicesCommander(device_list)
+    for device in devcom.device_list:
+        comrun = CommandRunner(device)
+        devcom.add_coroutines([comrun.get_config()])
+        # devcom.append_coroutine(comrun.get_config())
+        # devcom.append_coroutine(comrun.check_icmp(ip_list))
+    devcom.run()
 
 
 if __name__ == "__main__":
