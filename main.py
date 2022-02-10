@@ -224,11 +224,15 @@ def main():
         '4.1.8.8',
         '1.1.1.1'
     ]
-
+    # com_run_list=[]
     devcom = DevicesCommander(device_list)
-    for device in devcom.device_list:
-        comrun = CommandRunner(device)
-        devcom.add_coroutines([comrun.get_config()])
+    for id in range(len(devcom.device_list)):
+        comrun1 = CommandRunner(device_list[id])
+        # com_run_list.append(comrun)
+        devcom.add_coroutines([comrun1.get_config()])
+
+        comrun2 = CommandRunner(device_list[id])
+        devcom.add_coroutines([comrun2.get_any_command(comrun2.GET_IP)])
         # devcom.append_coroutine(comrun.get_config())
         # devcom.append_coroutine(comrun.check_icmp(ip_list))
     devcom.run()
