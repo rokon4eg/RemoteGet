@@ -35,8 +35,10 @@ class DeviceManagement:
 
     async def open_session(self):
         try:
-            if self.session.isalive:
-                exit()
+            if self.session is None:
+                self.session = AsyncScrapli(**self.device)
+            elif not self.session.isalive():
+                self.session = AsyncScrapli(**self.device)
         except AttributeError:
             self.session = AsyncScrapli(**self.device)
         # await
@@ -52,7 +54,7 @@ class DeviceManagement:
                     f'[{id}]: Connected to host {self.session.host} via {self.session.transport_name}:{self.session.port}')
         except Exception as err:
             print(
-                f'[{id}]: !!! Error from host {self.session.host} via {self.session.transport_name}:{self.session.port}\n'
+                f'[{id}]: !!! Open error from host {self.session.host} via {self.session.transport_name}:{self.session.port}\n'
                 f'{err}')
         # else:
         #     self.session = self.conn_session
@@ -67,13 +69,14 @@ class DeviceManagement:
             print(f'[{id}]: Host {self.session.host} disconnected'
                   f' via {self.session.transport_name}:{self.session.port}')
         except ScrapliException or OSError as err:
-            print(f'[{id}]: !!! Error from host {self.session.host}'
+            print(f'[{id}]: !!! Close error from host {self.session.host}'
                   f' via {self.session.transport_name}:{self.session.port}\n'
                   f'{err}')
         return None
 
-    async def send_command(self, command, print_result=True):
-        self.session = await self.open_session()
+    async def send_command(self, command, print_result=True, is_need_open=True):
+        if is_need_open:
+            self.session = await self.open_session()
         response = None
         if self.session.isalive():
             try:
@@ -90,7 +93,8 @@ class DeviceManagement:
                     print(f'--- No output. Variable "print_result" set is {print_result}')
                 print('elapsed time =', response.elapsed_time)
             finally:
-                await self.close_session()
+                if is_need_open:
+                    await self.close_session()
         return response
 
     async def send_commands(self, commands, print_result=True):
@@ -101,7 +105,7 @@ class DeviceManagement:
                 if type(commands) != list:
                     commands = [commands]
                 for command in commands:
-                    response = await self.send_command(command, print_result=print_result)
+                    response = await self.send_command(command, print_result=print_result, is_need_open=False)
                     response_list.append(response)
             finally:
                 await self.close_session()
@@ -128,11 +132,12 @@ class CommandRunner(DeviceManagement):
         result = dict()
         if not (type(ip_list) == list):
             ip_list = [ip_list]
-        await self.open_session()
-        if self.session.isalive():
-            try:
+        try:
+            await self.open_session()
+            if self.session.isalive():
                 for ip in ip_list:
-                    response = await self.send_command(self.SEND_PING % ip, print_result=print_result)
+                    response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
+                                                       is_need_open=False)
                     ping_count = re.findall(regx, response.result)
                     if int(ping_count[0][1]) >= 3:
                         date.today()
@@ -144,15 +149,15 @@ class CommandRunner(DeviceManagement):
                         result.update({ip:
                                            {str(date.today()): False}})
                         print(f'ICMP {ip} is False')
-            finally:
-                await self.close_session()
+        finally:
+            await self.close_session()
         return result
 
     async def get_config(self, print_result=False):
         return await self.send_command(self.GET_CONFIG, print_result=print_result)
 
-    async def get_any_command(self, command, print_result=True):
-        return await self.send_command(command, print_result)
+    async def get_any_commands(self, commands, print_result=True):
+        return await self.send_commands(commands, print_result)
 
     # async def manual_send_command(device):
     #     try:
@@ -226,15 +231,19 @@ def main():
     ]
     # com_run_list=[]
     devcom = DevicesCommander(device_list)
-    for id in range(len(devcom.device_list)):
-        comrun1 = CommandRunner(device_list[id])
-        # com_run_list.append(comrun)
-        devcom.add_coroutines([comrun1.get_config()])
+    for device in devcom.device_list:
+        comrun = CommandRunner(device)
+        devcom.append_coroutine(comrun.get_any_commands([comrun.GET_IP, comrun.GET_NAME]))
+        #
+        # comrun = CommandRunner(device)
+        # devcom.append_coroutine(comrun.get_any_commands(comrun.GET_CONFIG))
 
-        comrun2 = CommandRunner(device_list[id])
-        devcom.add_coroutines([comrun2.get_any_command(comrun2.GET_IP)])
-        # devcom.append_coroutine(comrun.get_config())
-        # devcom.append_coroutine(comrun.check_icmp(ip_list))
+        comrun = CommandRunner(device)
+        devcom.append_coroutine(comrun.check_icmp(ip_list))
+
+        comrun = CommandRunner(device)
+        devcom.append_coroutine(comrun.get_config())
+        #
     devcom.run()
 
 
