@@ -49,9 +49,11 @@ def main():
         #
     devcom.run()
 
+    devices.save_export_compact2files()
+
     for device in devices.device_list:
         print(device.ip)
-        print(device.export_compact)
+        # print(device.export_compact)
 
 
 if __name__ == "__main__":

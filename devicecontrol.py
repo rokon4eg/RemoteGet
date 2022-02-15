@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import os
 import re
 from datetime import date
 from typing import List, Coroutine
@@ -12,14 +14,47 @@ from scrapli import Scrapli, AsyncScrapli
 
 SLEEP = 0.1
 
+
+class Logger:
+    def __init__(self):
+        # logging.basicConfig(filename="devices.log",
+        #                     format='%(asctime)s: %(name)s - %(levelname)s - %(message)s',
+        #                     filemode='w')
+        # self.root = logging.getLogger()
+        self.dir = 'log'
+        if not os.path.exists(self.dir):
+            os.mkdir(self.dir)
+        log_format = '%(asctime)s: %(name)s - %(levelname)s - %(message)s'
+        self.root = self.set_logger('root', log_format, 'main.log')
+        self.export_compact = self.set_logger('export_compact', log_format, 'export_compact.log')
+        self.output_parse = self.set_logger('output_parse', log_format, 'output_parse.log')
+        self.output_icmp = self.set_logger('output_icmp', log_format, 'output_icmp.log')
+        self.tu = self.set_logger('tu', log_format, 'tu.log')
+
+    def set_logger(self, logger_name, log_format, file_out):
+        logger = logging.getLogger(logger_name)
+        handler_info = self.__get_handler(file_out, log_format, logging.INFO)
+        handler_warn = self.__get_handler(file_out, log_format, logging.WARNING)
+        logger.addHandler(handler_info)
+        logger.addHandler(handler_warn)
+        return logger
+
+    def __get_handler(self, file_out, log_format,level):
+        handler = logging.FileHandler(os.path.join(self.dir, file_out))
+        handler.setLevel(level)
+        handler.setFormatter(logging.Formatter(log_format))
+        return handler
+
+
 class Devices:
 
     def __init__(self):
-        self.device_list = []
+        self.device_list: List[Device] = []
         self.dir_export_compact = 'export_compact'
         self.dir_tu = 'tu'
         self.dir_output_parse = 'output_parse'
         self.dir_output_icmp = 'output_icmp'
+        self.loger = Logger()
 
     def load_from_yaml(self, filename):
         """
@@ -31,6 +66,8 @@ class Devices:
             dev = Device(config)
             dev.ip = config['host']
             self.device_list.append(dev)
+            self.loger.root.setLevel(logging.INFO)
+            self.loger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
         pass
 
     def check_enabled(self):
@@ -41,12 +78,12 @@ class Devices:
         '''
         pass
 
-    def load_export_compactfromfiles(self, dir = ''):
+    def load_export_compactfromfiles(self, dir=''):
         """
         Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
         """
         if not dir:
-            dir=self.dir_export_compact
+            dir = self.dir_export_compact
         pass
 
     def save_export_compact2files(self, dir=''):
@@ -55,13 +92,26 @@ class Devices:
         """
         if not dir:
             dir = self.dir_export_compact
-        pass
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        # logger = logging
+        for dev in self.device_list:
+            if dev.export_compact:
+                filename = dev.name + '_' + dir + '.txt'
+                with open(os.path.join(dir, filename), 'wt') as file:
+                    file.write(dev.export_compact)
+                self.loger.export_compact.setLevel(logging.INFO)
+                self.loger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
+            else:
+                self.loger.export_compact.setLevel(logging.WARNING)
+                self.loger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
 
     def get_remote_export_compact(self):
         """
         Метод получет конфигурации каждого устройства
         """
         pass
+
 
 class Device:
 
@@ -75,6 +125,7 @@ class Device:
         self.result_parsing = ''
         self.icmp_result = dict()
         self.export_compact = ''
+        self.log = ''
 
 
 class DeviceManagement:
@@ -99,7 +150,7 @@ class DeviceManagement:
         await asyncio.sleep(SLEEP)
         # self.session = session
         try:
-            id = 0# device_list.index(self.device)
+            id = 0  # device_list.index(self.device)
             print(
                 f'[{id}]: Connecting to host {self.session.host} via {self.session.transport_name}:{self.session.port}...')
             await self.session.open()
@@ -118,7 +169,7 @@ class DeviceManagement:
         # if not self.conn_session:
         # self.session = session
         try:
-            id = 0#device_list.index(self.device)
+            id = 0  # device_list.index(self.device)
             await self.session.close()
             print(f'[{id}]: Host {self.session.host} disconnected'
                   f' via {self.session.transport_name}:{self.session.port}')
@@ -137,7 +188,7 @@ class DeviceManagement:
                 pr = await self.session.get_prompt()
                 await asyncio.sleep(SLEEP)
                 response = await self.session.send_command(command)
-                id = 0#device_list.index(self.device)
+                id = 0  # device_list.index(self.device)
                 print(f'{"-" * 50}\n[{id}]: Result from host {self.session.host}'
                       f' via {self.session.transport_name}:{self.session.port}')
                 print(pr, response.channel_input)
