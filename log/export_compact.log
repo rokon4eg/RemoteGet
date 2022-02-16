@@ -1,0 +1,22 @@
+2022-02-15 16:04:52,420: export_compact - WARNING - device with ip:10.5.0.142 dont have config
+2022-02-15 16:04:52,420: export_compact - WARNING - device with ip:10.5.0.142 dont have config
+2022-02-15 16:04:52,435: export_compact - WARNING - device with ip:10.8.0.10 dont have config
+2022-02-15 16:04:52,435: export_compact - WARNING - device with ip:10.8.0.10 dont have config
+2022-02-15 16:04:52,437: export_compact - WARNING - device with ip:10.26.0.242 dont have config
+2022-02-15 16:04:52,437: export_compact - WARNING - device with ip:10.26.0.242 dont have config
+2022-02-15 16:36:32,176: export_compact - INFO - device with ip:192.168.0.1 save config to HomeMikroTik_export_compact.txt
+2022-02-15 16:36:32,191: export_compact - WARNING - device with ip:10.5.0.142 dont have config
+2022-02-15 16:36:32,192: export_compact - WARNING - device with ip:10.8.0.10 dont have config
+2022-02-15 16:36:32,193: export_compact - WARNING - device with ip:10.26.0.242 dont have config
+2022-02-16 23:47:56,835: export_compact - INFO - device with ip:192.168.0.1 save config to HomeMikroTik_export_compact.txt
+2022-02-16 23:47:56,867: export_compact - INFO - device with ip:10.5.0.142 save config to eoip.r1.cs.mhc_export_compact.txt
+2022-02-16 23:47:56,894: export_compact - INFO - device with ip:10.8.0.10 save config to eoip.r1.cs.els_export_compact.txt
+2022-02-16 23:47:56,918: export_compact - INFO - device with ip:10.26.0.242 save config to r1-eoip-cs.stp_export_compact.txt
+2022-02-16 23:49:54,719: export_compact - INFO - device with ip:192.168.0.1 save config to HomeMikroTik_export_compact.txt
+2022-02-16 23:49:54,758: export_compact - INFO - device with ip:10.5.0.142 save config to eoip.r1.cs.mhc_export_compact.txt
+2022-02-16 23:49:54,773: export_compact - INFO - device with ip:10.8.0.10 save config to eoip.r1.cs.els_export_compact.txt
+2022-02-16 23:49:54,788: export_compact - INFO - device with ip:10.26.0.242 save config to r1-eoip-cs.stp_export_compact.txt
+2022-02-17 00:05:45,694: export_compact - INFO - device with ip:192.168.0.1 save config to HomeMikroTik_export_compact.txt
+2022-02-17 00:05:45,737: export_compact - INFO - device with ip:10.5.0.142 save config to eoip.r1.cs.mhc_export_compact.txt
+2022-02-17 00:05:45,755: export_compact - INFO - device with ip:10.8.0.10 save config to eoip.r1.cs.els_export_compact.txt
+2022-02-17 00:05:45,767: export_compact - INFO - device with ip:10.26.0.242 save config to r1-eoip-cs.stp_export_compact.txt

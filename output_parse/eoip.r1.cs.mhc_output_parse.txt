@@ -1,0 +1,95 @@
+--- Результат анализа конфигурации"
+    Исключены remote ip находящиеся в файлах "" и "" 
+    Всего проанализировано: вланов - 110, еоип - 68,     бриджей - 69, порт бриджей - 148,    бондингов - 0 
+    Бриджы без портов - 1
+Бриджы с одним портом - 1
+Одиночные интерфейсы в бриджах - 1
+Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 5
+Eoip, которых нет ни в бриджах, ни во вланах, ни в bonding - 2
+Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 63
+Итого: 73
+
+---Бриджы без портов - 1:
+bridge625	/interface bridge port print where bridge="bridge625"	/interface bridge disable [find where name="bridge625"]
+
+---Бриджы с одним портом - 1:
+bridge_VLAN1254_Kocoeva13	/interface bridge port print where bridge="bridge_VLAN1254_Kocoeva13"	/interface bridge disable [find where name="bridge_VLAN1254_Kocoeva13"]
+
+---Одиночные интерфейсы в бриджах - 1:
+VLAN1254_MEG_Kocoeva13	/interface vlan print where name="VLAN1254_MEG_Kocoeva13"	/interface vlan disable [find where name="VLAN1254_MEG_Kocoeva13"]
+
+---Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 5:
+VLAN103_konsalt	/interface vlan print where name="VLAN103_konsalt"	/interface vlan disable [find where name="VLAN103_konsalt"]
+VLAN3911_TR	/interface vlan print where name="VLAN3911_TR"	/interface vlan disable [find where name="VLAN3911_TR"]
+vlan103_KOnsalt_DRB	/interface vlan print where name="vlan103_KOnsalt_DRB"	/interface vlan disable [find where name="vlan103_KOnsalt_DRB"]
+4vlan103_eoip_vl273	/interface vlan print where name="4vlan103_eoip_vl273"	/interface vlan disable [find where name="4vlan103_eoip_vl273"]
+VLAN3913_MTELTR_RTK_IRCI35	/interface vlan print where name="VLAN3913_MTELTR_RTK_IRCI35"	/interface vlan disable [find where name="VLAN3913_MTELTR_RTK_IRCI35"]
+
+---Eoip, которых нет ни в бриджах, ни во вланах, ни в bonding - 2:
+eoip-tunnel_DAG_OGNY	/interface eoip print where name="eoip-tunnel_DAG_OGNY"	/interface eoip disable [find where name="eoip-tunnel_DAG_OGNY"]
+eoip-tunnel_VTB1_100	/interface eoip print where name="eoip-tunnel_VTB1_100"	/interface eoip disable [find where name="eoip-tunnel_VTB1_100"]
+
+---Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 63:
+10.147.164.6	/interface eoip print where remote-address=10.147.164.6	/interface eoip disable [find where remote-address=10.147.164.6]
+10.5.55.62	/interface eoip print where remote-address=10.5.55.62	/interface eoip disable [find where remote-address=10.5.55.62]
+10.5.55.164	/interface eoip print where remote-address=10.5.55.164	/interface eoip disable [find where remote-address=10.5.55.164]
+10.5.55.206	/interface eoip print where remote-address=10.5.55.206	/interface eoip disable [find where remote-address=10.5.55.206]
+10.5.55.122	/interface eoip print where remote-address=10.5.55.122	/interface eoip disable [find where remote-address=10.5.55.122]
+78.111.244.165	/interface eoip print where remote-address=78.111.244.165	/interface eoip disable [find where remote-address=78.111.244.165]
+10.5.55.22	/interface eoip print where remote-address=10.5.55.22	/interface eoip disable [find where remote-address=10.5.55.22]
+10.5.55.146	/interface eoip print where remote-address=10.5.55.146	/interface eoip disable [find where remote-address=10.5.55.146]
+10.5.56.112	/interface eoip print where remote-address=10.5.56.112	/interface eoip disable [find where remote-address=10.5.56.112]
+78.110.159.38	/interface eoip print where remote-address=78.110.159.38	/interface eoip disable [find where remote-address=78.110.159.38]
+10.5.55.220	/interface eoip print where remote-address=10.5.55.220	/interface eoip disable [find where remote-address=10.5.55.220]
+10.5.56.242	/interface eoip print where remote-address=10.5.56.242	/interface eoip disable [find where remote-address=10.5.56.242]
+78.111.244.137	/interface eoip print where remote-address=78.111.244.137	/interface eoip disable [find where remote-address=78.111.244.137]
+10.5.56.18	/interface eoip print where remote-address=10.5.56.18	/interface eoip disable [find where remote-address=10.5.56.18]
+10.5.55.216	/interface eoip print where remote-address=10.5.55.216	/interface eoip disable [find where remote-address=10.5.55.216]
+10.5.55.222	/interface eoip print where remote-address=10.5.55.222	/interface eoip disable [find where remote-address=10.5.55.222]
+10.5.55.18	/interface eoip print where remote-address=10.5.55.18	/interface eoip disable [find where remote-address=10.5.55.18]
+10.5.56.22	/interface eoip print where remote-address=10.5.56.22	/interface eoip disable [find where remote-address=10.5.56.22]
+10.5.56.236	/interface eoip print where remote-address=10.5.56.236	/interface eoip disable [find where remote-address=10.5.56.236]
+10.5.55.78	/interface eoip print where remote-address=10.5.55.78	/interface eoip disable [find where remote-address=10.5.55.78]
+10.5.55.150	/interface eoip print where remote-address=10.5.55.150	/interface eoip disable [find where remote-address=10.5.55.150]
+188.133.176.90	/interface eoip print where remote-address=188.133.176.90	/interface eoip disable [find where remote-address=188.133.176.90]
+10.5.253.252	/interface eoip print where remote-address=10.5.253.252	/interface eoip disable [find where remote-address=10.5.253.252]
+10.5.55.74	/interface eoip print where remote-address=10.5.55.74	/interface eoip disable [find where remote-address=10.5.55.74]
+185.35.131.170	/interface eoip print where remote-address=185.35.131.170	/interface eoip disable [find where remote-address=185.35.131.170]
+78.111.244.138	/interface eoip print where remote-address=78.111.244.138	/interface eoip disable [find where remote-address=78.111.244.138]
+10.5.55.178	/interface eoip print where remote-address=10.5.55.178	/interface eoip disable [find where remote-address=10.5.55.178]
+10.5.55.82	/interface eoip print where remote-address=10.5.55.82	/interface eoip disable [find where remote-address=10.5.55.82]
+193.33.89.142	/interface eoip print where remote-address=193.33.89.142	/interface eoip disable [find where remote-address=193.33.89.142]
+10.5.55.92	/interface eoip print where remote-address=10.5.55.92	/interface eoip disable [find where remote-address=10.5.55.92]
+91.210.203.202	/interface eoip print where remote-address=91.210.203.202	/interface eoip disable [find where remote-address=91.210.203.202]
+10.5.55.158	/interface eoip print where remote-address=10.5.55.158	/interface eoip disable [find where remote-address=10.5.55.158]
+10.5.55.210	/interface eoip print where remote-address=10.5.55.210	/interface eoip disable [find where remote-address=10.5.55.210]
+46.52.131.166	/interface eoip print where remote-address=46.52.131.166	/interface eoip disable [find where remote-address=46.52.131.166]
+10.5.55.58	/interface eoip print where remote-address=10.5.55.58	/interface eoip disable [find where remote-address=10.5.55.58]
+10.5.56.220	/interface eoip print where remote-address=10.5.56.220	/interface eoip disable [find where remote-address=10.5.56.220]
+10.5.56.226	/interface eoip print where remote-address=10.5.56.226	/interface eoip disable [find where remote-address=10.5.56.226]
+10.5.55.88	/interface eoip print where remote-address=10.5.55.88	/interface eoip disable [find where remote-address=10.5.55.88]
+46.16.231.215	/interface eoip print where remote-address=46.16.231.215	/interface eoip disable [find where remote-address=46.16.231.215]
+10.5.55.250	/interface eoip print where remote-address=10.5.55.250	/interface eoip disable [find where remote-address=10.5.55.250]
+78.110.155.176	/interface eoip print where remote-address=78.110.155.176	/interface eoip disable [find where remote-address=78.110.155.176]
+91.205.128.180	/interface eoip print where remote-address=91.205.128.180	/interface eoip disable [find where remote-address=91.205.128.180]
+10.5.55.6	/interface eoip print where remote-address=10.5.55.6	/interface eoip disable [find where remote-address=10.5.55.6]
+10.5.55.52	/interface eoip print where remote-address=10.5.55.52	/interface eoip disable [find where remote-address=10.5.55.52]
+10.5.55.190	/interface eoip print where remote-address=10.5.55.190	/interface eoip disable [find where remote-address=10.5.55.190]
+91.210.203.195	/interface eoip print where remote-address=91.210.203.195	/interface eoip disable [find where remote-address=91.210.203.195]
+10.5.55.20	/interface eoip print where remote-address=10.5.55.20	/interface eoip disable [find where remote-address=10.5.55.20]
+10.5.56.10	/interface eoip print where remote-address=10.5.56.10	/interface eoip disable [find where remote-address=10.5.56.10]
+91.226.140.46	/interface eoip print where remote-address=91.226.140.46	/interface eoip disable [find where remote-address=91.226.140.46]
+10.5.55.252	/interface eoip print where remote-address=10.5.55.252	/interface eoip disable [find where remote-address=10.5.55.252]
+10.5.56.232	/interface eoip print where remote-address=10.5.56.232	/interface eoip disable [find where remote-address=10.5.56.232]
+80.244.224.60	/interface eoip print where remote-address=80.244.224.60	/interface eoip disable [find where remote-address=80.244.224.60]
+176.98.159.28	/interface eoip print where remote-address=176.98.159.28	/interface eoip disable [find where remote-address=176.98.159.28]
+10.5.56.120	/interface eoip print where remote-address=10.5.56.120	/interface eoip disable [find where remote-address=10.5.56.120]
+91.205.128.156	/interface eoip print where remote-address=91.205.128.156	/interface eoip disable [find where remote-address=91.205.128.156]
+10.5.55.136	/interface eoip print where remote-address=10.5.55.136	/interface eoip disable [find where remote-address=10.5.55.136]
+10.5.56.238	/interface eoip print where remote-address=10.5.56.238	/interface eoip disable [find where remote-address=10.5.56.238]
+176.101.227.48	/interface eoip print where remote-address=176.101.227.48	/interface eoip disable [find where remote-address=176.101.227.48]
+10.5.55.96	/interface eoip print where remote-address=10.5.55.96	/interface eoip disable [find where remote-address=10.5.55.96]
+10.5.55.170	/interface eoip print where remote-address=10.5.55.170	/interface eoip disable [find where remote-address=10.5.55.170]
+10.5.55.98	/interface eoip print where remote-address=10.5.55.98	/interface eoip disable [find where remote-address=10.5.55.98]
+78.110.159.26	/interface eoip print where remote-address=78.110.159.26	/interface eoip disable [find where remote-address=78.110.159.26]
+10.5.55.94	/interface eoip print where remote-address=10.5.55.94	/interface eoip disable [find where remote-address=10.5.55.94]

@@ -1,0 +1,37 @@
+--- Результат анализа конфигурации"
+    Исключены remote ip находящиеся в файлах "" и "" 
+    Всего проанализировано: вланов - 16, еоип - 13,     бриджей - 14, порт бриджей - 23,    бондингов - 0 
+    Бриджы без портов - 0
+Бриджы с одним портом - 0
+Одиночные интерфейсы в бриджах - 0
+Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 0
+Eoip, которых нет ни в бриджах, ни во вланах, ни в bonding - 2
+Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 13
+Итого: 15
+
+---Бриджы без портов - 0:
+
+---Бриджы с одним портом - 0:
+
+---Одиночные интерфейсы в бриджах - 0:
+
+---Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 0:
+
+---Eoip, которых нет ни в бриджах, ни во вланах, ни в bonding - 2:
+eoip-tunnel2568443-to-r3.mirkotik.msk_10.177.250.248	/interface eoip print where name="eoip-tunnel2568443-to-r3.mirkotik.msk_10.177.250.248"	/interface eoip disable [find where name="eoip-tunnel2568443-to-r3.mirkotik.msk_10.177.250.248"]
+eoip-tunnel2568443_to_client	/interface eoip print where name="eoip-tunnel2568443_to_client"	/interface eoip disable [find where name="eoip-tunnel2568443_to_client"]
+
+---Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 13:
+10.26.107.20	/interface eoip print where remote-address=10.26.107.20	/interface eoip disable [find where remote-address=10.26.107.20]
+10.26.253.247	/interface eoip print where remote-address=10.26.253.247	/interface eoip disable [find where remote-address=10.26.253.247]
+10.50.105.209	/interface eoip print where remote-address=10.50.105.209	/interface eoip disable [find where remote-address=10.50.105.209]
+10.26.253.252	/interface eoip print where remote-address=10.26.253.252	/interface eoip disable [find where remote-address=10.26.253.252]
+10.26.253.249	/interface eoip print where remote-address=10.26.253.249	/interface eoip disable [find where remote-address=10.26.253.249]
+10.26.201.50	/interface eoip print where remote-address=10.26.201.50	/interface eoip disable [find where remote-address=10.26.201.50]
+10.26.201.2	/interface eoip print where remote-address=10.26.201.2	/interface eoip disable [find where remote-address=10.26.201.2]
+10.26.253.251	/interface eoip print where remote-address=10.26.253.251	/interface eoip disable [find where remote-address=10.26.253.251]
+10.26.253.253	/interface eoip print where remote-address=10.26.253.253	/interface eoip disable [find where remote-address=10.26.253.253]
+10.26.201.66	/interface eoip print where remote-address=10.26.201.66	/interface eoip disable [find where remote-address=10.26.201.66]
+10.26.253.250	/interface eoip print where remote-address=10.26.253.250	/interface eoip disable [find where remote-address=10.26.253.250]
+10.26.253.248	/interface eoip print where remote-address=10.26.253.248	/interface eoip disable [find where remote-address=10.26.253.248]
+10.26.201.42	/interface eoip print where remote-address=10.26.201.42	/interface eoip disable [find where remote-address=10.26.201.42]

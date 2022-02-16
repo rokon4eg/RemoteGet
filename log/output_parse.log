@@ -1,0 +1,4 @@
+2022-02-17 00:05:45,810: output_parse - INFO - device with ip:192.168.0.1 save result parse config to HomeMikroTik_output_parse.txt
+2022-02-17 00:05:45,848: output_parse - INFO - device with ip:10.5.0.142 save result parse config to eoip.r1.cs.mhc_output_parse.txt
+2022-02-17 00:05:45,859: output_parse - INFO - device with ip:10.8.0.10 save result parse config to eoip.r1.cs.els_output_parse.txt
+2022-02-17 00:05:45,878: output_parse - INFO - device with ip:10.26.0.242 save result parse config to r1-eoip-cs.stp_output_parse.txt

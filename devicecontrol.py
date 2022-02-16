@@ -1,16 +1,13 @@
-import asyncio
-import logging
-import os
-import re
+import os, re, logging, asyncio
 from datetime import date
 from typing import List, Coroutine
 
 import yaml
 from scrapli.exceptions import ScrapliException
 
-from parse_config import parse_config
+from scrapli import AsyncScrapli
 
-from scrapli import Scrapli, AsyncScrapli
+from parse_config.parse_config import MikrotikConfig, GeneralParam
 
 SLEEP = 0.1
 
@@ -25,7 +22,7 @@ class Logger:
         if not os.path.exists(self.dir):
             os.mkdir(self.dir)
         log_format = '%(asctime)s: %(name)s - %(levelname)s - %(message)s'
-        self.root = self.set_logger('root', log_format, 'main.log')
+        self.root = self.set_logger('main', log_format, 'main.log')
         self.export_compact = self.set_logger('export_compact', log_format, 'export_compact.log')
         self.output_parse = self.set_logger('output_parse', log_format, 'output_parse.log')
         self.output_icmp = self.set_logger('output_icmp', log_format, 'output_icmp.log')
@@ -33,17 +30,25 @@ class Logger:
 
     def set_logger(self, logger_name, log_format, file_out):
         logger = logging.getLogger(logger_name)
-        handler_info = self.__get_handler(file_out, log_format, logging.INFO)
-        handler_warn = self.__get_handler(file_out, log_format, logging.WARNING)
-        logger.addHandler(handler_info)
-        logger.addHandler(handler_warn)
+        logger.setLevel(logging.INFO)
+        handler = logging.FileHandler(os.path.join(self.dir, file_out))
+        handler.setFormatter(logging.Formatter(log_format))
+        logger.addHandler(handler)
+        # handler_info = self.__get_handler(file_out, log_format, logging.INFO)
+        # handler_warn = self.__get_handler(file_out, log_format, logging.WARNING)
+        # logger.addHandler(handler_info)
+        # logger.addHandler(handler_warn)
         return logger
 
-    def __get_handler(self, file_out, log_format,level):
-        handler = logging.FileHandler(os.path.join(self.dir, file_out))
-        handler.setLevel(level)
-        handler.setFormatter(logging.Formatter(log_format))
-        return handler
+    # def __get_handler(self, file_out, log_format, level):
+    #     handler = logging.FileHandler(os.path.join(self.dir, file_out))
+    #     handler.setLevel(level)
+    #     handler.setFormatter(logging.Formatter(log_format))
+    #     return handler
+
+    # def send_msg(self, logger: logging.Logger, level, msg, ):
+    #     logger.setLevel(level)
+    #     logger.
 
 
 class Devices:
@@ -66,16 +71,8 @@ class Devices:
             dev = Device(config)
             dev.ip = config['host']
             self.device_list.append(dev)
-            self.loger.root.setLevel(logging.INFO)
+            # self.loger.root.setLevel(logging.INFO)
             self.loger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
-        pass
-
-    def check_enabled(self):
-        '''
-        Метод проверяет каждое устройство из device_list на доступность
-        и устанавливает признак в self.device_list[i].enabled
-        заполняет name, ip, city
-        '''
         pass
 
     def load_export_compactfromfiles(self, dir=''):
@@ -100,17 +97,50 @@ class Devices:
                 filename = dev.name + '_' + dir + '.txt'
                 with open(os.path.join(dir, filename), 'wt') as file:
                     file.write(dev.export_compact)
-                self.loger.export_compact.setLevel(logging.INFO)
+                # self.loger.export_compact.setLevel(logging.INFO)
                 self.loger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
             else:
-                self.loger.export_compact.setLevel(logging.WARNING)
+                # self.loger.export_compact.setLevel(logging.WARNING)
                 self.loger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
+
+    def save_parse_result2files(self, dir=''):
+        """
+        Метод сохраняет результат парсинга конфигураций каждого устройства в отдельный файл в выделенном каталоге dir
+        """
+        if not dir:
+            dir = self.dir_output_parse
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        # logger = logging
+        for dev in self.device_list:
+            if dev.result_parsing:
+                filename = dev.name + '_' + dir + '.txt'
+                with open(os.path.join(dir, filename), 'wt') as file:
+                    file.write(dev.result_parsing)
+                # self.loger.export_compact.setLevel(logging.INFO)
+                self.loger.output_parse.info(f'device with ip:{dev.ip} save result parse config to {filename}')
+            else:
+                # self.loger.export_compact.setLevel(logging.WARNING)
+                self.loger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
 
     def get_remote_export_compact(self):
         """
         Метод получет конфигурации каждого устройства
         """
         pass
+
+    def parse_config(self):
+        for dev in self.device_list:
+            if dev.export_compact:
+                file_tu = ''
+                file_active = ''
+                dev.mikroconfig = MikrotikConfig(dev.export_compact, file_tu=file_tu, file_active=file_active)
+                general_param = GeneralParam(dev.mikroconfig)
+
+                output_msg, text_for_output_in_file = general_param.get_output_info()
+                # print(output_msg)
+                dev.result_parsing = output_msg + text_for_output_in_file
+
 
 
 class Device:
@@ -125,7 +155,7 @@ class Device:
         self.result_parsing = ''
         self.icmp_result = dict()
         self.export_compact = ''
-        self.log = ''
+        self.mikroconfig:MikrotikConfig
 
 
 class DeviceManagement:
@@ -232,36 +262,51 @@ class CommandRunner(DeviceManagement):
         self.GET_PPP_ACTIVE = '/ppp active print'
         self.GET_NAME = '/system identity print'
 
-    async def check_icmp(self, ip_list, print_result=True):
-        regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
-        result = dict()
-        if not (type(ip_list) == list):
-            ip_list = [ip_list]
-        try:
-            await self.open_session()
-            if self.session.isalive():
-                for ip in ip_list:
-                    response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
-                                                       is_need_open=False)
-                    ping_count = re.findall(regx, response.result)
-                    if int(ping_count[0][1]) >= 3:
-                        date.today()
-                        result.update({ip:
-                                           {str(date.today()): ping_count[0]}
-                                       })
-                        print(f'ICMP {ip} is True')
-                    else:
-                        result.update({ip:
-                                           {str(date.today()): False}})
-                        print(f'ICMP {ip} is False')
-        finally:
-            await self.close_session()
-        return result
+    async def check_icmp(self, ip_list, print_result=True, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
+            result = dict()
+            if not (type(ip_list) == list):
+                ip_list = [ip_list]
+            try:
+                await self.open_session()
+                if self.session.isalive():
+                    for ip in ip_list:
+                        response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
+                                                           is_need_open=False)
+                        ping_count = re.findall(regx, response.result)
+                        if int(ping_count[0][1]) >= 3:
+                            date.today()
+                            result.update({ip:
+                                               {str(date.today()): ping_count[0]}
+                                           })
+                            print(f'ICMP {ip} is True')
+                        else:
+                            result.update({ip:
+                                               {str(date.today()): False}})
+                            print(f'ICMP {ip} is False')
+            finally:
+                await self.close_session()
+            return result
 
-    async def get_config(self, print_result=False):
-        res = await self.send_command(self.GET_CONFIG, print_result=print_result)
+    async def get_config(self, print_result=False, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            res = await self.send_command(self.GET_CONFIG, print_result=print_result)
+            if not (res is None):
+                self.device.export_compact = res.result
+
+    async def get_sysname(self):
+        """
+        Метод проверяет каждое устройство из device_list на доступность
+        и устанавливает признак в self.device_list[i].enabled
+        + заполняет name
+        """
+        res = await self.send_command(self.GET_NAME)
         if not (res is None):
-            self.device.export_compact = res.result
+            self.device.enabled = True
+            self.device.name = res.result.strip().lstrip('name:').strip()
+        else:
+            self.device.enabled = False
 
     async def get_any_commands(self, commands, print_result=True):
         return await self.send_commands(commands, print_result)
