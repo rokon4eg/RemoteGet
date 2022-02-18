@@ -209,10 +209,10 @@ class GeneralParam:
             stroka = f"{self.value[param][0].capitalize()} - {count}\n"
             sum += count
             res += stroka
-            print(stroka)
+            # print(stroka)
         stroka = 'Итого: ' + str(sum) + '\n'
         res += stroka
-        print(stroka)
+        # print(stroka)
 
         for param in params:
             variable_for_print = self.value[param][1]
@@ -230,7 +230,7 @@ class GeneralParam:
                 s += '\n'.join(variable_for_print) + '\n'
             res += s
             # print(s)
-        print(f'---Подробная информация в файле ---')
+        # print(f'---Подробная информация в файле ---')
         return res
 
     def get_output_info(self, param=None):

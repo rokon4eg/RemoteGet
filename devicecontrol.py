@@ -77,7 +77,7 @@ class Devices:
 
     def load_export_compactfromfiles(self, dir=''):
         """
-        Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
+        TODO Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
         """
         if not dir:
             dir = self.dir_export_compact
@@ -123,12 +123,6 @@ class Devices:
                 # self.loger.export_compact.setLevel(logging.WARNING)
                 self.loger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
 
-    def get_remote_export_compact(self):
-        """
-        Метод получет конфигурации каждого устройства
-        """
-        pass
-
     def parse_config(self):
         for dev in self.device_list:
             if dev.export_compact:
@@ -140,7 +134,6 @@ class Devices:
                 output_msg, text_for_output_in_file = general_param.get_output_info()
                 # print(output_msg)
                 dev.result_parsing = output_msg + text_for_output_in_file
-
 
 
 class Device:
@@ -155,7 +148,8 @@ class Device:
         self.result_parsing = ''
         self.icmp_result = dict()
         self.export_compact = ''
-        self.mikroconfig:MikrotikConfig
+        self.ppp_active = ''
+        self.mikroconfig: MikrotikConfig
 
 
 class DeviceManagement:
@@ -182,14 +176,14 @@ class DeviceManagement:
         try:
             id = 0  # device_list.index(self.device)
             print(
-                f'[{id}]: Connecting to host {self.session.host} via {self.session.transport_name}:{self.session.port}...')
+                f'[{id}]: Connecting to {self.session.host} via {self.session.transport_name}:{self.session.port}...')
             await self.session.open()
             if self.session.isalive():
                 print(
-                    f'[{id}]: Connected to host {self.session.host} via {self.session.transport_name}:{self.session.port}')
+                    f'[{id}]: Connected to {self.session.host} via {self.session.transport_name}:{self.session.port}')
         except Exception as err:
             print(
-                f'[{id}]: !!! Open error from host {self.session.host} via {self.session.transport_name}:{self.session.port}\n'
+                f'[{id}]: ! Open error from {self.session.host} via {self.session.transport_name}:{self.session.port}\n'
                 f'{err}')
         # else:
         #     self.session = self.conn_session
@@ -204,7 +198,7 @@ class DeviceManagement:
             print(f'[{id}]: Host {self.session.host} disconnected'
                   f' via {self.session.transport_name}:{self.session.port}')
         except ScrapliException or OSError as err:
-            print(f'[{id}]: !!! Close error from host {self.session.host}'
+            print(f'[{id}]: ! Close error from {self.session.host}'
                   f' via {self.session.transport_name}:{self.session.port}\n'
                   f'{err}')
         return None
@@ -219,7 +213,7 @@ class DeviceManagement:
                 await asyncio.sleep(SLEEP)
                 response = await self.session.send_command(command)
                 id = 0  # device_list.index(self.device)
-                print(f'{"-" * 50}\n[{id}]: Result from host {self.session.host}'
+                print(f'{"-" * 50}\n[{id}]: Result from {self.session.host}'
                       f' via {self.session.transport_name}:{self.session.port}')
                 print(pr, response.channel_input)
                 if print_result:
@@ -259,7 +253,7 @@ class CommandRunner(DeviceManagement):
         self.GET_IP = '/ip address print'
         self.SEND_PING = '/ping %s count=5'
         self.GET_CONFIG = '/export compact'
-        self.GET_PPP_ACTIVE = '/ppp active print'
+        self.GET_PPP_ACTIVE = '/ppp active pr detail'
         self.GET_NAME = '/system identity print'
 
     async def check_icmp(self, ip_list, print_result=True, check_enabled=False):
@@ -291,9 +285,17 @@ class CommandRunner(DeviceManagement):
 
     async def get_config(self, print_result=False, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
-            res = await self.send_command(self.GET_CONFIG, print_result=print_result)
-            if not (res is None):
-                self.device.export_compact = res.result
+            response = await self.send_command(self.GET_CONFIG, print_result=print_result)
+            if not (response is None):
+                self.device.export_compact = response.result
+
+    async def get_ppp_active(self, print_result=False, check_enabled=False):
+        regx = r'address=((?:\d+\.){3}\d+)'
+        if (not check_enabled) or self.device.enabled:
+            response = await self.send_command(self.GET_PPP_ACTIVE, print_result=print_result)
+            if not (response is None):
+                res= re.findall(regx, response.result)
+                self.device.ppp_active = res
 
     async def get_sysname(self):
         """
@@ -301,10 +303,10 @@ class CommandRunner(DeviceManagement):
         и устанавливает признак в self.device_list[i].enabled
         + заполняет name
         """
-        res = await self.send_command(self.GET_NAME)
-        if not (res is None):
+        response = await self.send_command(self.GET_NAME)
+        if not (response is None):
             self.device.enabled = True
-            self.device.name = res.result.strip().lstrip('name:').strip()
+            self.device.name = response.result.strip().lstrip('name:').strip()
         else:
             self.device.enabled = False
 
