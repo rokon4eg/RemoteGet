@@ -25,8 +25,9 @@ class ExternalData:
 
         group_ip = self.group_ip_by_city()
         for group_name, ip_list in group_ip.items():
-            filename = group_name + '_' + dir + '.txt'
-            with open(os.path.join(dir, filename), 'wt') as file:
+            # filename = group_name + '_' + dir + '.txt'
+            filename = get_file_name(group_name, dir)
+            with open(filename, 'wt') as file:
                 file.write('\n'.join(ip_list))
                 print(f'\tSave {len(ip_list)} ip to file {filename}')
 
@@ -56,13 +57,19 @@ def get_filelist_from_dir(dir):
     return os.listdir(dir)
 
 
+def get_file_name(name, dir, ext='txt'):
+    '''return -> dir/name_dir.ext'''
+    filename = name + '_' + dir + '.' + ext
+    return os.path.join(dir, filename)
+
+
 def save_list2json_file(cm_list, dir, filename):
     with open(os.path.join(dir, filename), 'wt') as file:
         file.write(json.dumps(cm_list))
 
 
 def load_list_from_json_file(dir, filename):
-    with open(os.path.join(dir, filename), 'wt') as file:
+    with open(os.path.join(dir, filename), 'rt') as file:
         return json.loads(file.read())
 
 

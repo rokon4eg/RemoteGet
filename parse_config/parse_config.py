@@ -20,19 +20,22 @@ class MikrotikConfig:
 
 5 Вывести вланы, не участвующие в бриджах и в "ip addresses"
     """
-    def __init__(self, config, file_tu='', file_active=''):
+    def __init__(self, config, file_tu='', ip_active_ppp='', file_active=''):
         self.file_tu = file_tu
         self.file_active = file_active
         self.config = config
         self.ip_from_tu = set(self.getipfromfile(file_tu, regExFindIP)) if self.file_tu else set()
-        self.ip_active_ppp = set(self.getipfromfile(file_active, regExFindIP)) if self.file_active else set()
-        self.br_empty = set()
-        self.br_single = set()
-        self.int_single_dict = dict()
+        if ip_active_ppp:
+            self.ip_active_ppp = ip_active_ppp
+        else:
+            self.ip_active_ppp = set(self.getipfromfile(file_active, regExFindIP)) if self.file_active else set()
+        self.br_empty = set()  # ---br_empty
+        self.br_single = set()  # ---br_single
+        self.int_single_dict = dict()  # --intsingle
         self.set_bridges()  # br_empty, br_single, int_single_dict
-        self.vlans_free = self.get_vlans_free()
-        self.eoip_free = self.get_eoip_free()
-        self.ip_free = self.get_ip_free()
+        self.vlans_free = self.get_vlans_free()  # --vlans_free
+        self.eoip_free = self.get_eoip_free()  # --eoip_free
+        self.ip_free = self.get_ip_free()  # --ip_free
 
     @property
     def all_bridges(self):
@@ -234,7 +237,7 @@ class GeneralParam:
         return res
 
     def get_output_info(self, param=None):
-        output_msg = f'''--- Результат анализа конфигурации"
+        output_msg = f'''--- Результат анализа конфигурации %s (%s) г. %s ---"
     Исключены remote ip находящиеся в файлах "{self.mikrotik.file_tu}" и "{self.mikrotik.file_active}" 
     Всего проанализировано: вланов - {len(self.mikrotik.vlans)}, еоип - {len(self.mikrotik.name_eoip)}, \
     бриджей - {len(self.mikrotik.all_bridges)}, порт бриджей - {len(self.mikrotik.ports_only_from_bridges)},\

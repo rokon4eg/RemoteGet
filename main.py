@@ -47,13 +47,22 @@ def main():
 
     for device in devcom.devices.device_list:
         if device.enabled:
-            comrun = dc.CommandRunner(device)
-            devcom.append_coroutine(comrun.get_config())
+            comrun1 = dc.CommandRunner(device)
+            devcom.append_coroutine(comrun1.get_config())
+
+            comrun2 = dc.CommandRunner(device)
+            devcom.append_coroutine(comrun2.get_ppp_active())
     devcom.run()
 
     devices.save_export_compact2files()
     devices.parse_config()
     devices.save_parse_result2files()
+
+    for device in devcom.devices.device_list:
+        if device.enabled:
+            comrun1 = dc.CommandRunner(device)
+            devcom.append_coroutine(comrun1.check_icmp(device.mikroconfig.ip_free))
+    devices.save_icmp_result2files()
 
     # for device in devices.device_list:
     #     print(device.ip)

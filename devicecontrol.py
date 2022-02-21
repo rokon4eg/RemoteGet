@@ -1,12 +1,15 @@
+import json
 import os, re, logging, asyncio
 from datetime import date
 from typing import List, Coroutine
 
+import pandas
 import yaml
 from scrapli.exceptions import ScrapliException
 
 from scrapli import AsyncScrapli
 
+import tools
 from parse_config.parse_config import MikrotikConfig, GeneralParam
 
 SLEEP = 0.1
@@ -94,8 +97,9 @@ class Devices:
         # logger = logging
         for dev in self.device_list:
             if dev.export_compact:
-                filename = dev.name + '_' + dir + '.txt'
-                with open(os.path.join(dir, filename), 'wt') as file:
+                # filename = dev.name + '_' + dir + '.txt'
+                filename = tools.get_file_name(dev.name, dir)
+                with open(filename, 'wt') as file:
                     file.write(dev.export_compact)
                 # self.loger.export_compact.setLevel(logging.INFO)
                 self.loger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
@@ -111,29 +115,49 @@ class Devices:
             dir = self.dir_output_parse
         if not os.path.exists(dir):
             os.mkdir(dir)
-        # logger = logging
+        summary = []
         for dev in self.device_list:
             if dev.result_parsing:
-                filename = dev.name + '_' + dir + '.txt'
-                with open(os.path.join(dir, filename), 'wt') as file:
+                filename = tools.get_file_name(dev.name, dir)
+                with open(filename, 'wt') as file:
                     file.write(dev.result_parsing)
-                # self.loger.export_compact.setLevel(logging.INFO)
                 self.loger.output_parse.info(f'device with ip:{dev.ip} save result parse config to {filename}')
+                summary.append(dev.get_summary_parse_result())
             else:
-                # self.loger.export_compact.setLevel(logging.WARNING)
                 self.loger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
+        file_summary = tools.get_file_name('summary', dir)
+        values = '\n'.join(map(lambda x: '\t'.join(x.values()), summary))
+        with open(file_summary, 'wt') as file:
+            file.write('\t'.join(summary[0].keys()))
+            file.write(values)
 
     def parse_config(self):
         for dev in self.device_list:
             if dev.export_compact:
-                file_tu = ''
-                file_active = ''
-                dev.mikroconfig = MikrotikConfig(dev.export_compact, file_tu=file_tu, file_active=file_active)
+                file_tu = tools.get_file_name(dev.city, self.dir_tu)
+                if not os.path.exists(file_tu):
+                    self.loger.tu.warning(f'! File with IP from TU {file_tu} not exists')
+                    file_tu = ''
+                dev.mikroconfig = MikrotikConfig(dev.export_compact, file_tu, dev.ip_ppp_active)
                 general_param = GeneralParam(dev.mikroconfig)
 
                 output_msg, text_for_output_in_file = general_param.get_output_info()
                 # print(output_msg)
-                dev.result_parsing = output_msg + text_for_output_in_file
+                dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
+
+    def save_icmp_result2files(self):
+        for dev in self.device_list:
+            if dev.icmp_result:
+                file_icmp = tools.get_file_name(dev.name, self.dir_output_icmp, 'xlsx')
+                data_json = dict()
+                if os.path.exists(file_icmp):
+                    data = pandas.read_excel(file_icmp)
+                    data_json = json.loads(data.to_json())
+                data_json.setdefault(str(date.today()),dev.icmp_result)
+                new_data = pandas.read_json(json.dumps(data_json))
+                with open(file_icmp, 'wt') as file:
+                    new_data.to_excel()
+#                     TODO: дописать метод сохранения в эксель
 
 
 class Device:
@@ -148,8 +172,22 @@ class Device:
         self.result_parsing = ''
         self.icmp_result = dict()
         self.export_compact = ''
-        self.ppp_active = ''
-        self.mikroconfig: MikrotikConfig
+        self.ip_ppp_active = ''
+        self.mikroconfig: MikrotikConfig = None
+
+    def get_summary_parse_result(self):
+        res = dict()
+        if not self.mikroconfig is None:
+            res.setdefault('name', self.name)
+            res.setdefault('ip', self.ip)
+            res.setdefault('city', self.city)
+            res.setdefault('br_empty', self.mikroconfig.br_empty)
+            res.setdefault('br_single', self.mikroconfig.br_single)
+            res.setdefault('int_single_dict', self.mikroconfig.int_single_dict)
+            res.setdefault('vlans_free', self.mikroconfig.vlans_free)
+            res.setdefault('eoip_free', self.mikroconfig.eoip_free)
+            res.setdefault('ip_free', self.mikroconfig.ip_free)
+        return res
 
 
 class DeviceManagement:
@@ -247,20 +285,20 @@ class CommandRunner(DeviceManagement):
     """
     Класс реализует расширенное выполнение команд на одном устройстве
     """
+    GET_IP = '/ip address print'
+    SEND_PING = '/ping %s count=5'
+    GET_CONFIG = '/export compact'
+    GET_PPP_ACTIVE = '/ppp active pr detail'
+    GET_NAME = '/system identity print'
 
     def __init__(self, device):
         super().__init__(device)
-        self.GET_IP = '/ip address print'
-        self.SEND_PING = '/ping %s count=5'
-        self.GET_CONFIG = '/export compact'
-        self.GET_PPP_ACTIVE = '/ppp active pr detail'
-        self.GET_NAME = '/system identity print'
 
     async def check_icmp(self, ip_list, print_result=True, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
             regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
             result = dict()
-            if not (type(ip_list) == list):
+            if not (type(ip_list) == list or type(ip_list) == set):
                 ip_list = [ip_list]
             try:
                 await self.open_session()
@@ -271,17 +309,17 @@ class CommandRunner(DeviceManagement):
                         ping_count = re.findall(regx, response.result)
                         if int(ping_count[0][1]) >= 3:
                             date.today()
-                            result.update({ip:
-                                               {str(date.today()): ping_count[0]}
-                                           })
+                            result.update({ip: ping_count[0]})
                             print(f'ICMP {ip} is True')
                         else:
-                            result.update({ip:
-                                               {str(date.today()): False}})
+                            result.update({ip: False})
+
                             print(f'ICMP {ip} is False')
+
             finally:
                 await self.close_session()
-            return result
+            self.device.icmp_result = result
+            # return result
 
     async def get_config(self, print_result=False, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
@@ -294,8 +332,8 @@ class CommandRunner(DeviceManagement):
         if (not check_enabled) or self.device.enabled:
             response = await self.send_command(self.GET_PPP_ACTIVE, print_result=print_result)
             if not (response is None):
-                res= re.findall(regx, response.result)
-                self.device.ppp_active = res
+                res = re.findall(regx, response.result)
+                self.device.ip_ppp_active = res
 
     async def get_sysname(self):
         """
