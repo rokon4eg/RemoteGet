@@ -150,9 +150,13 @@ class Devices:
             if dev.icmp_result:
                 file_icmp = tools.get_file_name(dev.name, self.dir_output_icmp, 'xlsx')
                 data_json = dict()
+                data = None
                 if os.path.exists(file_icmp):
                     data = pandas.read_excel(file_icmp)
-                    data_json = json.loads(data.to_json())
+                    # data_json = json.loads(data.to_json())
+                res_json = json.dumps({str(date.today()):dev.icmp_result})
+                new_data = pandas.read_json(json.dumps(res_json))
+
                 data_json.setdefault(str(date.today()),dev.icmp_result)
                 new_data = pandas.read_json(json.dumps(data_json))
                 with open(file_icmp, 'wt') as file:
