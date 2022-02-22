@@ -1,5 +1,7 @@
 import os, re, logging, asyncio, json, yaml
+
 from datetime import date
+from threading import Lock
 from typing import List, Coroutine
 
 import pandas
@@ -11,14 +13,49 @@ from parse_config.parse_config import MikrotikConfig, GeneralParam
 
 SLEEP = 0.1
 
+class SingletonMeta(type):
+    """
+    Это потокобезопасная реализация класса Singleton.
+    """
 
-class Logger:
-    instance = None
+    _instances = {}
 
-    def __new__(cls):
-        if cls.instance is None:
-            cls.instance = super().__new__(cls)
-        return cls.instance
+    _lock: Lock = Lock()
+    """
+    У нас теперь есть объект-блокировка для синхронизации потоков во время
+    первого доступа к Одиночке.
+    """
+
+    def __call__(cls, *args, **kwargs):
+        """
+        Данная реализация не учитывает возможное изменение передаваемых
+        аргументов в `__init__`.
+        """
+        # Теперь представьте, что программа была только-только запущена.
+        # Объекта-одиночки ещё никто не создавал, поэтому несколько потоков
+        # вполне могли одновременно пройти через предыдущее условие и достигнуть
+        # блокировки. Самый быстрый поток поставит блокировку и двинется внутрь
+        # секции, пока другие будут здесь его ожидать.
+        with cls._lock:
+            # Первый поток достигает этого условия и проходит внутрь, создавая
+            # объект-одиночку. Как только этот поток покинет секцию и освободит
+            # блокировку, следующий поток может снова установить блокировку и
+            # зайти внутрь. Однако теперь экземпляр одиночки уже будет создан и
+            # поток не сможет пройти через это условие, а значит новый объект не
+            # будет создан.
+            if cls not in cls._instances:
+                instance = super().__call__(*args, **kwargs)
+                cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class Logger(metaclass=SingletonMeta):
+    # instance = None
+    #
+    # def __new__(cls):
+    #     if cls.instance is None:
+    #         cls.instance = super().__new__(cls)
+    #     return cls.instance
 
     def __init__(self):
         # logging.basicConfig(filename="devices.log",
@@ -87,7 +124,7 @@ class Devices:
             dev.ip = config['host']
             self.device_list.append(dev)
             # self.logger.root.setLevel(logging.INFO)
-            self.logger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
+            self.logger.tu.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
 
     def load_from_excel(self, filename):
         """
@@ -104,7 +141,7 @@ class Devices:
             dev.name = node['NAME_DEVICE']
             self.device_list.append(dev)
             # self.logger.root.setLevel(logging.INFO)
-            self.logger.root.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
+            self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
                                   f' transport={config["transport"]}')
 
     def load_export_compactfromfiles(self, dir=''):
@@ -172,15 +209,16 @@ class Devices:
                 dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
 
     def save_icmp_result2files(self):
+        if not os.path.exists(self.dir_output_icmp):
+            os.mkdir(self.dir_output_icmp)
         for dev in self.device_list:
             if dev.icmp_result:
                 file_icmp = tools.get_file_name(dev.name, self.dir_output_icmp, 'xlsx')
                 old_data = None
-                if os.path.exists(file_icmp):
-                    old_data = pandas.read_excel(file_icmp, index_col=0)
                 res_json = json.dumps({str(date.today()): dev.icmp_result})
                 new_data = pandas.read_json(res_json)
-                if old_data:
+                if os.path.exists(file_icmp):
+                    old_data = pandas.read_excel(file_icmp, index_col=0)
                     data = old_data.merge(new_data, left_index=True, right_index=True, how='outer')
                 else:
                     data = new_data
@@ -327,30 +365,38 @@ class CommandRunner(DeviceManagement):
         if (not check_enabled) or self.device.enabled:
             regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
             result = dict()
+            count = 0
+            true_icmp = 0
+            false_icmp = 0
             if not (type(ip_list) == list or type(ip_list) == set):
                 ip_list = [ip_list]
             try:
                 await self.open_session()
                 if self.session.isalive():
                     for ip in ip_list:
+                        count += 1
+                        msg = f'Check {count}/{len(ip_list)} ICMP from {self.device.ip} to host {ip} - %s'
                         response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
                                                            is_need_open=False)
                         ping_count = re.findall(regx, response.result)
                         if int(ping_count[0][1]) >= 3:
                             date.today()
                             result.update({ip: ping_count[0]})
-                            print(f'ICMP {ip} is True')
+                            true_icmp += 1
+                            print(msg % 'TRUE')
+                            self.logger.output_icmp.info(msg % 'TRUE')
                         else:
                             result.update({ip: False})
-
-                            print(f'ICMP {ip} is False')
-
+                            false_icmp += 1
+                            print(msg % 'FALSE')
+                            self.logger.output_icmp.info(msg % 'FALSE')
             finally:
+                message = f'Check ICMP for {len(ip_list)} host from {self.device.ip} ({self.device.name}) complete!' \
+                          f'\n ICMP is True - {true_icmp}. ICMP is False - {false_icmp}.'
+                print(message)
+                self.logger.root.info(message)
                 await self.close_session()
             self.device.icmp_result = result
-        else:
-            await asyncio.sleep(SLEEP)
-            # return result
 
     async def get_config(self, print_result=False, check_enabled=False):
         if (not check_enabled) or self.device.enabled:

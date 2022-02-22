@@ -14,7 +14,7 @@ def main():
 
     devcom = dc.DevicesCommander(devices)
 
-    devices_for_work = devcom.devices.device_list[:2]
+    devices_for_work = devcom.devices.device_list[:11]
 
     devices.logger.root.info(f'Get "sysname" from {len(devices_for_work)} hosts...')
     for device in devices_for_work:
@@ -51,6 +51,7 @@ def main():
         if device.enabled:
             comrun1 = dc.CommandRunner(device)
             devcom.append_coroutine(comrun1.check_icmp(device.mikroconfig.ip_free))
+    devcom.run()
     devices.logger.root.info(f'Check ICMP success.')
 
     devices.logger.root.info(f'Save ICMP result to files...')
