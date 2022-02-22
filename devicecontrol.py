@@ -1,12 +1,9 @@
-import json
-import os, re, logging, asyncio
+import os, re, logging, asyncio, json, yaml
 from datetime import date
 from typing import List, Coroutine
 
 import pandas
-import yaml
 from scrapli.exceptions import ScrapliException
-
 from scrapli import AsyncScrapli
 
 import tools
@@ -16,6 +13,13 @@ SLEEP = 0.1
 
 
 class Logger:
+    instance = None
+
+    def __new__(cls):
+        if cls.instance is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
+
     def __init__(self):
         # logging.basicConfig(filename="devices.log",
         #                     format='%(asctime)s: %(name)s - %(levelname)s - %(message)s',
@@ -29,6 +33,7 @@ class Logger:
         self.export_compact = self.set_logger('export_compact', log_format, 'export_compact.log')
         self.output_parse = self.set_logger('output_parse', log_format, 'output_parse.log')
         self.output_icmp = self.set_logger('output_icmp', log_format, 'output_icmp.log')
+        self.device_com = self.set_logger('device_com', log_format, 'device_com.log')
         self.tu = self.set_logger('tu', log_format, 'tu.log')
 
     def set_logger(self, logger_name, log_format, file_out):
@@ -55,6 +60,13 @@ class Logger:
 
 
 class Devices:
+    config_example = dict()
+    config_example['host'] = ''
+    config_example['auth_username'] = ''
+    config_example['auth_password'] = ''
+    config_example['auth_strict_key'] = False
+    config_example['platform'] = 'mikrotik_routeros'
+    config_example['transport'] = 'asyncssh'
 
     def __init__(self):
         self.device_list: List[Device] = []
@@ -62,7 +74,7 @@ class Devices:
         self.dir_tu = 'tu'
         self.dir_output_parse = 'output_parse'
         self.dir_output_icmp = 'output_icmp'
-        self.loger = Logger()
+        self.logger = Logger()
 
     def load_from_yaml(self, filename):
         """
@@ -74,31 +86,26 @@ class Devices:
             dev = Device(config)
             dev.ip = config['host']
             self.device_list.append(dev)
-            # self.loger.root.setLevel(logging.INFO)
-            self.loger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
+            # self.logger.root.setLevel(logging.INFO)
+            self.logger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
 
     def load_from_excel(self, filename):
         """
-        Заполняет device_list на основе данных в Excel файле"""
+        Заполняет device_list на основе данных в Excel файле
+        """
         data = pandas.read_excel(filename, index_col=0)
-        config = dict()
-        config.setdefault('host', '')
-        config.setdefault('auth_username', '')
-        config.setdefault('auth_password', '')
-        config.setdefault('auth_strict_key', 'false')
-        config.setdefault('platform', 'mikrotik_routeros')
-        config.setdefault('transport', 'ssh2')
-
-        for config in config_yaml:
-            config['host'] = '192.168.0.1'
-            config['auth_username'] = 'admin'
-            config['auth_password'] = 'pass'
-            dev = Device(config)
-            dev.ip = config['host']
+        for node in data.iloc:
+            config = self.config_example.copy()
+            config['host'] = node['IP_DEVICE']
+            config['auth_username'] = node['LOGIN']
+            config['auth_password'] = node['PASSWORD']
+            dev = Device(config.copy())
+            dev.city = node['Город']
+            dev.name = node['NAME_DEVICE']
             self.device_list.append(dev)
-            # self.loger.root.setLevel(logging.INFO)
-            self.loger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
-
+            # self.logger.root.setLevel(logging.INFO)
+            self.logger.root.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
+                                  f' transport={config["transport"]}')
 
     def load_export_compactfromfiles(self, dir=''):
         """
@@ -123,11 +130,11 @@ class Devices:
                 filename = tools.get_file_name(dev.name, dir)
                 with open(filename, 'wt') as file:
                     file.write(dev.export_compact)
-                # self.loger.export_compact.setLevel(logging.INFO)
-                self.loger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
+                # self.logger.export_compact.setLevel(logging.INFO)
+                self.logger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
             else:
-                # self.loger.export_compact.setLevel(logging.WARNING)
-                self.loger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
+                # self.logger.export_compact.setLevel(logging.WARNING)
+                self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
 
     def save_parse_result2files(self, dir=''):
         """
@@ -143,22 +150,19 @@ class Devices:
                 filename = tools.get_file_name(dev.name, dir)
                 with open(filename, 'wt') as file:
                     file.write(dev.result_parsing)
-                self.loger.output_parse.info(f'device with ip:{dev.ip} save result parse config to {filename}')
+                self.logger.output_parse.info(f'device with ip:{dev.ip} save result parse config to {filename}')
                 summary.append(dev.get_summary_parse_result())
             else:
-                self.loger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
-        file_summary = tools.get_file_name('summary', dir)
-        values = '\n'.join(map(lambda x: '\t'.join(x.values()), summary))
-        with open(file_summary, 'wt') as file:
-            file.write('\t'.join(summary[0].keys()))
-            file.write(values)
+                self.logger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
+        file_summary = tools.get_file_name('summary', dir, 'xlsx')
+        pandas.read_json(json.dumps(summary)).to_excel(file_summary)
 
     def parse_config(self):
         for dev in self.device_list:
             if dev.export_compact:
                 file_tu = tools.get_file_name(dev.city, self.dir_tu)
                 if not os.path.exists(file_tu):
-                    self.loger.tu.warning(f'! File with IP from TU {file_tu} not exists')
+                    self.logger.tu.warning(f'! File with IP from TU {file_tu} not exists')
                     file_tu = ''
                 dev.mikroconfig = MikrotikConfig(dev.export_compact, file_tu, dev.ip_ppp_active)
                 general_param = GeneralParam(dev.mikroconfig)
@@ -173,7 +177,7 @@ class Devices:
                 file_icmp = tools.get_file_name(dev.name, self.dir_output_icmp, 'xlsx')
                 old_data = None
                 if os.path.exists(file_icmp):
-                    old_data = pandas.read_excel(file_icmp,index_col=0)
+                    old_data = pandas.read_excel(file_icmp, index_col=0)
                 res_json = json.dumps({str(date.today()): dev.icmp_result})
                 new_data = pandas.read_json(res_json)
                 if old_data:
@@ -189,27 +193,28 @@ class Device:
         self.id = -1
         self.enabled = False
         self.connect_param = connect_param
-        self.ip = ''
+        self.ip = connect_param['host']
         self.name = ''
         self.city = ''
         self.result_parsing = ''
         self.icmp_result = dict()
         self.export_compact = ''
-        self.ip_ppp_active = ''
+        self.ip_ppp_active = set()
         self.mikroconfig: MikrotikConfig = None
+        # self.logger = Logger()
 
     def get_summary_parse_result(self):
         res = dict()
         if not self.mikroconfig is None:
-            res.setdefault('name', self.name)
-            res.setdefault('ip', self.ip)
-            res.setdefault('city', self.city)
-            res.setdefault('br_empty', self.mikroconfig.br_empty)
-            res.setdefault('br_single', self.mikroconfig.br_single)
-            res.setdefault('int_single_dict', self.mikroconfig.int_single_dict)
-            res.setdefault('vlans_free', self.mikroconfig.vlans_free)
-            res.setdefault('eoip_free', self.mikroconfig.eoip_free)
-            res.setdefault('ip_free', self.mikroconfig.ip_free)
+            res['city'] = self.city
+            res['name'] = self.name
+            res['ip'] = self.ip
+            res['br_empty'] = len(self.mikroconfig.br_empty)
+            res['br_single'] = len(self.mikroconfig.br_single)
+            res['int_single_dict'] = len(self.mikroconfig.int_single_dict)
+            res['vlans_free'] = len(self.mikroconfig.vlans_free)
+            res['eoip_free'] = len(self.mikroconfig.eoip_free)
+            res['ip_free'] = len(self.mikroconfig.ip_free)
         return res
 
 
@@ -316,6 +321,7 @@ class CommandRunner(DeviceManagement):
 
     def __init__(self, device):
         super().__init__(device)
+        self.logger = Logger()
 
     async def check_icmp(self, ip_list, print_result=True, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
@@ -342,6 +348,8 @@ class CommandRunner(DeviceManagement):
             finally:
                 await self.close_session()
             self.device.icmp_result = result
+        else:
+            await asyncio.sleep(SLEEP)
             # return result
 
     async def get_config(self, print_result=False, check_enabled=False):
@@ -349,6 +357,10 @@ class CommandRunner(DeviceManagement):
             response = await self.send_command(self.GET_CONFIG, print_result=print_result)
             if not (response is None):
                 self.device.export_compact = response.result
+                self.logger.device_com.info(f'Host with IP {self.device.ip} ({self.device.name}) return config')
+            else:
+                self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name})'
+                                               f' don`t return config')
 
     async def get_ppp_active(self, print_result=False, check_enabled=False):
         regx = r'address=((?:\d+\.){3}\d+)'
@@ -356,7 +368,12 @@ class CommandRunner(DeviceManagement):
             response = await self.send_command(self.GET_PPP_ACTIVE, print_result=print_result)
             if not (response is None):
                 res = re.findall(regx, response.result)
-                self.device.ip_ppp_active = res
+                self.device.ip_ppp_active = set(res)
+                self.logger.device_com.info(f'Host with IP {self.device.ip} ({self.device.name})'
+                                            f' return ppp active')
+            else:
+                self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name})'
+                                               f' don`t return ppp active')
 
     async def get_sysname(self):
         """
@@ -368,8 +385,10 @@ class CommandRunner(DeviceManagement):
         if not (response is None):
             self.device.enabled = True
             self.device.name = response.result.strip().lstrip('name:').strip()
+            self.logger.device_com.info(f'Host with IP {self.device.ip} return sysname - {self.device.name}')
         else:
             self.device.enabled = False
+            self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name}) not response!')
 
     async def get_any_commands(self, commands, print_result=True):
         return await self.send_commands(commands, print_result)
