@@ -226,9 +226,15 @@ class Devices:
 
 
 class Device:
+    count = -1
+
+    def __new__(cls, *args, **kwargs):
+        cls.count += 1
+        return super().__new__(cls)
 
     def __init__(self, connect_param):
-        self.id = -1
+        self.false_icmp_list = []
+        self.id = self.count
         self.enabled = False
         self.connect_param = connect_param
         self.ip = connect_param['host']
@@ -244,15 +250,16 @@ class Device:
     def get_summary_parse_result(self):
         res = dict()
         if not self.mikroconfig is None:
-            res['city'] = self.city
-            res['name'] = self.name
-            res['ip'] = self.ip
-            res['br_empty'] = len(self.mikroconfig.br_empty)
-            res['br_single'] = len(self.mikroconfig.br_single)
-            res['int_single_dict'] = len(self.mikroconfig.int_single_dict)
-            res['vlans_free'] = len(self.mikroconfig.vlans_free)
-            res['eoip_free'] = len(self.mikroconfig.eoip_free)
-            res['ip_free'] = len(self.mikroconfig.ip_free)
+            res['City'] = self.city
+            res['sys name'] = self.name
+            res['MikroTik IP'] = self.ip
+            res['Bridge empty'] = len(self.mikroconfig.br_empty)
+            res['Bridge single'] = len(self.mikroconfig.br_single)
+            res['int single'] = len(self.mikroconfig.int_single_dict)
+            res['vlans free'] = len(self.mikroconfig.vlans_free)
+            res['EOIP free'] = len(self.mikroconfig.eoip_free)
+            res['IP free'] = len(self.mikroconfig.ip_free)
+            res['False ICMP'] = len(self.false_icmp_list)
         return res
 
 
@@ -278,7 +285,8 @@ class DeviceManagement:
         await asyncio.sleep(SLEEP)
         # self.session = session
         try:
-            id = 0  # device_list.index(self.device)
+            # id = 0  # device_list.index(self.device)
+            id = self.device.id
             print(
                 f'[{id}]: Connecting to {self.session.host} via {self.session.transport_name}:{self.session.port}...')
             await self.session.open()
@@ -297,7 +305,8 @@ class DeviceManagement:
         # if not self.conn_session:
         # self.session = session
         try:
-            id = 0  # device_list.index(self.device)
+            # id = 0  # device_list.index(self.device)
+            id = self.device.id
             await self.session.close()
             print(f'[{id}]: Host {self.session.host} disconnected'
                   f' via {self.session.transport_name}:{self.session.port}')
@@ -316,7 +325,8 @@ class DeviceManagement:
                 pr = await self.session.get_prompt()
                 await asyncio.sleep(SLEEP)
                 response = await self.session.send_command(command)
-                id = 0  # device_list.index(self.device)
+                # id = 0  # device_list.index(self.device)
+                id = self.device.id
                 print(f'{"-" * 50}\n[{id}]: Result from {self.session.host}'
                       f' via {self.session.transport_name}:{self.session.port}')
                 print(pr, response.channel_input)
@@ -368,6 +378,7 @@ class CommandRunner(DeviceManagement):
             count = 0
             true_icmp = 0
             false_icmp = 0
+            # false_icmp_list = []
             if not (type(ip_list) == list or type(ip_list) == set):
                 ip_list = [ip_list]
             try:
@@ -388,6 +399,7 @@ class CommandRunner(DeviceManagement):
                         else:
                             result.update({ip: False})
                             false_icmp += 1
+                            self.device.false_icmp_list.append(ip)
                             print(msg % 'FALSE')
                             self.logger.output_icmp.info(msg % 'FALSE')
             finally:

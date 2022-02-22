@@ -1,16 +1,293 @@
-2022-02-15 16:36:15,007: main - INFO - load_from_yaml: ip=192.168.0.1, transport=asyncssh
-2022-02-15 16:36:17,031: main - INFO - load_from_yaml: ip=10.5.0.142, transport=asyncssh
-2022-02-15 16:36:17,314: main - INFO - load_from_yaml: ip=10.8.0.10, transport=asyncssh
-2022-02-15 16:36:17,662: main - INFO - load_from_yaml: ip=10.26.0.242, transport=asyncssh
-2022-02-16 23:47:37,484: main - INFO - load_from_yaml: ip=192.168.0.1, transport=asyncssh
-2022-02-16 23:47:37,495: main - INFO - load_from_yaml: ip=10.5.0.142, transport=asyncssh
-2022-02-16 23:47:37,496: main - INFO - load_from_yaml: ip=10.8.0.10, transport=asyncssh
-2022-02-16 23:47:37,496: main - INFO - load_from_yaml: ip=10.26.0.242, transport=asyncssh
-2022-02-16 23:49:37,157: main - INFO - load_from_yaml: ip=192.168.0.1, transport=asyncssh
-2022-02-16 23:49:37,160: main - INFO - load_from_yaml: ip=10.5.0.142, transport=asyncssh
-2022-02-16 23:49:37,160: main - INFO - load_from_yaml: ip=10.8.0.10, transport=asyncssh
-2022-02-16 23:49:37,160: main - INFO - load_from_yaml: ip=10.26.0.242, transport=asyncssh
-2022-02-17 00:05:28,995: main - INFO - load_from_yaml: ip=192.168.0.1, transport=asyncssh
-2022-02-17 00:05:28,999: main - INFO - load_from_yaml: ip=10.5.0.142, transport=asyncssh
-2022-02-17 00:05:29,000: main - INFO - load_from_yaml: ip=10.8.0.10, transport=asyncssh
-2022-02-17 00:05:29,000: main - INFO - load_from_yaml: ip=10.26.0.242, transport=asyncssh
+2022-02-23 00:07:38,112: main - INFO - Get "sysname" from 139 hosts...
+2022-02-23 00:07:55,693: main - INFO - Get "sysname" success.
+2022-02-23 00:07:55,694: main - INFO - Get "config" and "ip ppp active" from 139 hosts...
+2022-02-23 00:08:27,819: main - INFO - Get "config" and "ip ppp active" success.
+2022-02-23 00:08:27,820: main - INFO - Save export compact to files...
+2022-02-23 00:08:31,033: main - INFO - Save export compact success.
+2022-02-23 00:08:31,033: main - INFO - Parse config...
+2022-02-23 00:08:50,926: main - INFO - Parse config success.
+2022-02-23 00:08:50,927: main - INFO - Save result parse config to files...
+2022-02-23 00:08:54,587: main - INFO - Save result parse config success.
+2022-02-23 00:08:54,587: main - INFO - Save ICMP result to files...
+2022-02-23 00:08:54,589: main - INFO - Save ICMP result success.
+2022-02-23 00:29:33,051: main - INFO - Get "sysname" from 139 hosts...
+2022-02-23 00:29:50,612: main - INFO - Get "sysname" success.
+2022-02-23 00:29:50,614: main - INFO - Get "config" and "ip ppp active" from 139 hosts...
+2022-02-23 00:30:24,132: main - INFO - Get "config" and "ip ppp active" success.
+2022-02-23 00:30:24,133: main - INFO - Save export compact to files...
+2022-02-23 00:30:27,052: main - INFO - Save export compact success.
+2022-02-23 00:30:27,053: main - INFO - Parse config...
+2022-02-23 00:30:40,298: main - INFO - Parse config success.
+2022-02-23 00:30:40,299: main - INFO - Save result parse config to files...
+2022-02-23 00:32:37,209: main - INFO - Get "sysname" from 139 hosts...
+2022-02-23 00:32:54,045: main - INFO - Get "sysname" success.
+2022-02-23 00:32:54,045: main - INFO - Get "config" and "ip ppp active" from 139 hosts...
+2022-02-23 00:33:39,792: main - INFO - Get "sysname" from 139 hosts...
+2022-02-23 00:33:56,184: main - INFO - Get "sysname" success.
+2022-02-23 00:33:56,186: main - INFO - Get "config" and "ip ppp active" from 139 hosts...
+2022-02-23 00:34:28,933: main - INFO - Get "config" and "ip ppp active" success.
+2022-02-23 00:34:28,934: main - INFO - Save export compact to files...
+2022-02-23 00:34:31,736: main - INFO - Save export compact success.
+2022-02-23 00:34:31,737: main - INFO - Parse config...
+2022-02-23 00:34:46,547: main - INFO - Parse config success.
+2022-02-23 00:34:46,547: main - INFO - Save result parse config to files...
+2022-02-23 00:34:49,279: main - INFO - Save result parse config success.
+2022-02-23 00:34:49,280: main - INFO - Check ICMP...
+2022-02-23 00:38:15,494: main - INFO - Get "sysname" from 139 hosts...
+2022-02-23 00:38:32,791: main - INFO - Get "sysname" success.
+2022-02-23 00:38:32,792: main - INFO - Get "config" and "ip ppp active" from 139 hosts...
+2022-02-23 00:39:06,783: main - INFO - Get "config" and "ip ppp active" success.
+2022-02-23 00:39:06,783: main - INFO - Save export compact to files...
+2022-02-23 00:39:08,989: main - INFO - Save export compact success.
+2022-02-23 00:39:08,989: main - INFO - Parse config...
+2022-02-23 00:39:22,175: main - INFO - Parse config success.
+2022-02-23 00:39:22,177: main - INFO - Save result parse config to files...
+2022-02-23 00:39:25,933: main - INFO - Save result parse config success.
+2022-02-23 00:39:25,933: main - INFO - Check ICMP...
+2022-02-23 00:39:30,178: main - INFO - Check ICMP for 0 host from 10.152.1.205 (EoIP.R1.CS.DZZ) complete!
+ ICMP is True - 0. ICMP is False - 0.
+2022-02-23 00:39:30,216: main - INFO - Check ICMP for 0 host from 10.46.0.199 (eoip.r1.cs.krs) complete!
+ ICMP is True - 0. ICMP is False - 0.
+2022-02-23 00:39:35,076: main - INFO - Check ICMP for 1 host from 10.12.0.150 (eoip.r1.cs.yol) complete!
+ ICMP is True - 1. ICMP is False - 0.
+2022-02-23 00:39:35,849: main - INFO - Check ICMP for 1 host from 10.228.178.208 (EoIP.R3.CS.RZN) complete!
+ ICMP is True - 1. ICMP is False - 0.
+2022-02-23 00:39:35,872: main - INFO - Check ICMP for 1 host from 10.57.0.248 (eoip.r2.cs.orl) complete!
+ ICMP is True - 1. ICMP is False - 0.
+2022-02-23 00:39:35,949: main - INFO - Check ICMP for 1 host from 10.2.0.112 (eoip.r2.cs.ufa) complete!
+ ICMP is True - 1. ICMP is False - 0.
+2022-02-23 00:39:37,030: main - INFO - Check ICMP for 1 host from 10.8.0.10 (eoip.r1.cs.els) complete!
+ ICMP is True - 1. ICMP is False - 0.
+2022-02-23 00:39:37,876: main - INFO - Check ICMP for 1 host from 10.125.3.180 (eoip1.r1.cs.art) complete!
+ ICMP is True - 1. ICMP is False - 0.
+2022-02-23 00:39:38,767: main - INFO - Check ICMP for 1 host from 10.65.0.179 (eoip.iroso.cs-001.ush) complete!
+ ICMP is True - 0. ICMP is False - 1.
+2022-02-23 00:39:41,044: main - INFO - Check ICMP for 2 host from 10.44.0.201 (eoip.r1.cs.krm) complete!
+ ICMP is True - 1. ICMP is False - 1.
+2022-02-23 00:39:42,660: main - INFO - Check ICMP for 2 host from 10.45.0.111 (eoip.r1.cs.kgn) complete!
+ ICMP is True - 0. ICMP is False - 2.
+2022-02-23 00:39:45,239: main - INFO - Check ICMP for 3 host from 10.163.3.70 (eoip.r1.cs.szr) complete!
+ ICMP is True - 0. ICMP is False - 3.
+2022-02-23 00:39:46,513: main - INFO - Check ICMP for 3 host from 10.229.248.14 (Eoip.r3.klg) complete!
+ ICMP is True - 2. ICMP is False - 1.
+2022-02-23 00:39:47,392: main - INFO - Check ICMP for 3 host from 10.54.11.1 (r1.mbs.cs) complete!
+ ICMP is True - 2. ICMP is False - 1.
+2022-02-23 00:39:47,997: main - INFO - Check ICMP for 3 host from 10.33.0.246 (EoIP.R2.CS.VLM) complete!
+ ICMP is True - 3. ICMP is False - 0.
+2022-02-23 00:39:50,130: main - INFO - Check ICMP for 3 host from 10.23.0.64 (eoip.sorm.cs.krd) complete!
+ ICMP is True - 0. ICMP is False - 3.
+2022-02-23 00:39:51,996: main - INFO - Check ICMP for 4 host from 10.176.1.201 (eoip.r1.cs.rbk) complete!
+ ICMP is True - 3. ICMP is False - 1.
+2022-02-23 00:39:56,263: main - INFO - Check ICMP for 5 host from 10.16.0.72 (r3-bs-eoip.cgs.kzn) complete!
+ ICMP is True - 5. ICMP is False - 0.
+2022-02-23 00:39:57,089: main - INFO - Check ICMP for 3 host from 10.36.0.65 (eoip.r2.cs.vnz) complete!
+ ICMP is True - 3. ICMP is False - 0.
+2022-02-23 00:40:02,109: main - INFO - Check ICMP for 6 host from 10.73.0.101 (eoip.r2.cs.ulk) complete!
+ ICMP is True - 2. ICMP is False - 4.
+2022-02-23 00:40:11,690: main - INFO - Check ICMP for 7 host from 10.43.0.111 (eoip.r1.cs.krv_new) complete!
+ ICMP is True - 1. ICMP is False - 6.
+2022-02-23 00:40:11,806: main - INFO - Check ICMP for 7 host from 10.161.3.51 (eoip.r3.cs.nck) complete!
+ ICMP is True - 2. ICMP is False - 5.
+2022-02-23 00:40:12,368: main - INFO - Check ICMP for 7 host from 10.161.1.65 (eoip.r1.cs.tgr) complete!
+ ICMP is True - 3. ICMP is False - 4.
+2022-02-23 00:40:14,134: main - INFO - Check ICMP for 8 host from 10.40.0.206 (eoip.r2.cs.klg) complete!
+ ICMP is True - 7. ICMP is False - 1.
+2022-02-23 00:40:19,499: main - INFO - Check ICMP for 9 host from 10.75.0.180 (eoip2.cs-001.cht) complete!
+ ICMP is True - 7. ICMP is False - 2.
+2022-02-23 00:40:24,627: main - INFO - Check ICMP for 10 host from 10.31.0.230 (eoip.r1.cs.bld) complete!
+ ICMP is True - 6. ICMP is False - 4.
+2022-02-23 00:40:24,632: main - INFO - Check ICMP for 10 host from 10.138.1.149 (eoip.r1.cs.angarsk) complete!
+ ICMP is True - 1. ICMP is False - 9.
+2022-02-23 00:40:24,908: main - INFO - Check ICMP for 10 host from 10.161.2.19 (eoip.r2.cs.sha) complete!
+ ICMP is True - 10. ICMP is False - 0.
+2022-02-23 00:40:28,577: main - INFO - Check ICMP for 10 host from 10.21.0.50 (eoip.r1.cs.cbr) complete!
+ ICMP is True - 1. ICMP is False - 9.
+2022-02-23 00:40:29,348: main - INFO - Check ICMP for 12 host from 10.66.99.202 (eoip.r6.cs-2.ekb) complete!
+ ICMP is True - 12. ICMP is False - 0.
+2022-02-23 00:40:32,072: main - INFO - Check ICMP for 12 host from 10.28.0.188 (eoip2.cs.bvk) complete!
+ ICMP is True - 12. ICMP is False - 0.
+2022-02-23 00:40:33,541: main - INFO - Check ICMP for 12 host from 10.3.0.181 (eoip.r2.cs.ulu) complete!
+ ICMP is True - 12. ICMP is False - 0.
+2022-02-23 00:40:33,927: main - INFO - Check ICMP for 12 host from 10.26.0.242 (r1-eoip-cs.stp) complete!
+ ICMP is True - 12. ICMP is False - 0.
+2022-02-23 00:40:34,510: main - INFO - Check ICMP for 11 host from 10.23.0.67 (eoip.r3.cs.krd) complete!
+ ICMP is True - 3. ICMP is False - 8.
+2022-02-23 00:40:36,928: main - INFO - Check ICMP for 12 host from 10.122.1.30 (eoip.r1.cs.bsk) complete!
+ ICMP is True - 4. ICMP is False - 8.
+2022-02-23 00:40:37,892: main - INFO - Check ICMP for 13 host from 10.62.0.206 (eoip.r2.cs.rzn) complete!
+ ICMP is True - 9. ICMP is False - 4.
+2022-02-23 00:40:41,005: main - INFO - Check ICMP for 13 host from 10.166.2.111 (eoip.r1.cs.kur) complete!
+ ICMP is True - 2. ICMP is False - 11.
+2022-02-23 00:40:43,231: main - INFO - Check ICMP for 13 host from 10.25.0.182 (r3-eoip-vladivostok) complete!
+ ICMP is True - 12. ICMP is False - 1.
+2022-02-23 00:40:49,334: main - INFO - Check ICMP for 15 host from 10.23.0.63 (eoip.r4.p2p.cs.krd) complete!
+ ICMP is True - 12. ICMP is False - 3.
+2022-02-23 00:40:56,805: main - INFO - Check ICMP for 17 host from 10.61.0.68 (eoip.r3.cs-001.rnd) complete!
+ ICMP is True - 17. ICMP is False - 0.
+2022-02-23 00:40:57,343: main - INFO - Check ICMP for 16 host from 10.125.1.180 (r1-eoip-nahodka) complete!
+ ICMP is True - 14. ICMP is False - 2.
+2022-02-23 00:41:02,632: main - INFO - Check ICMP for 17 host from 10.25.0.181 (r2-eoip-vladivostok) complete!
+ ICMP is True - 15. ICMP is False - 2.
+2022-02-23 00:41:15,524: main - INFO - Check ICMP for 21 host from 10.174.2.111 (eoip.r1.cs.zut) complete!
+ ICMP is True - 4. ICMP is False - 17.
+2022-02-23 00:41:30,710: main - INFO - Check ICMP for 22 host from 10.142.1.32 (new_eoip.r2.cs.kmr) complete!
+ ICMP is True - 14. ICMP is False - 8.
+2022-02-23 00:41:51,595: main - INFO - Check ICMP for 26 host from 10.36.0.240 (eoip.r1.cs.vnz) complete!
+ ICMP is True - 12. ICMP is False - 14.
+2022-02-23 00:41:53,324: main - INFO - Check ICMP for 27 host from 10.3.0.205 (eoip.r1.cs.ulu) complete!
+ ICMP is True - 1. ICMP is False - 26.
+2022-02-23 00:41:58,065: main - INFO - Check ICMP for 27 host from 10.65.0.180 (eoip.cs.ush) complete!
+ ICMP is True - 14. ICMP is False - 13.
+2022-02-23 00:42:23,454: main - INFO - Check ICMP for 34 host from 10.66.225.111 (eoip.r1.cs.ntg) complete!
+ ICMP is True - 5. ICMP is False - 29.
+2022-02-23 00:42:26,915: main - INFO - Check ICMP for 34 host from 10.23.0.61 (EOIP.R5-KTTK.KRD) complete!
+ ICMP is True - 21. ICMP is False - 13.
+2022-02-23 00:42:27,235: main - INFO - Check ICMP for 31 host from 10.70.0.170 (eoip.r1.cs.tms) complete!
+ ICMP is True - 3. ICMP is False - 28.
+2022-02-23 00:42:31,728: main - INFO - Check ICMP for 37 host from 10.18.0.60 (eoip.r1.cs.izh) complete!
+ ICMP is True - 0. ICMP is False - 37.
+2022-02-23 00:43:08,092: main - INFO - Check ICMP for 43 host from 10.174.3.111 (eoip.r1.cs.mss.main) complete!
+ ICMP is True - 5. ICMP is False - 38.
+2022-02-23 00:43:58,964: main - INFO - Check ICMP for 48 host from 10.53.0.234 (eoip.r1.vng) complete!
+ ICMP is True - 7. ICMP is False - 41.
+2022-02-23 00:44:02,797: main - INFO - Check ICMP for 51 host from 10.51.0.234 (eoip.r1.cs.mmk) complete!
+ ICMP is True - 12. ICMP is False - 39.
+2022-02-23 00:44:03,383: main - INFO - Check ICMP for 51 host from 10.63.0.90 (eoip.r2.cs.smr) complete!
+ ICMP is True - 4. ICMP is False - 47.
+2022-02-23 00:44:04,458: main - INFO - Check ICMP for 54 host from 10.171.0.201 (EoIP.R1.CS.NMK) complete!
+ ICMP is True - 1. ICMP is False - 53.
+2022-02-23 00:44:53,290: main - INFO - Check ICMP for 59 host from 10.5.0.142 (eoip.r1.cs.mhc) complete!
+ ICMP is True - 2. ICMP is False - 57.
+2022-02-23 00:45:44,056: main - INFO - Check ICMP for 72 host from 10.86.0.111 (eoip.r1.cs.tmn.srg) complete!
+ ICMP is True - 15. ICMP is False - 57.
+2022-02-23 00:45:53,448: main - INFO - Check ICMP for 73 host from 10.161.2.20 (eoip.r1.cs.sha) complete!
+ ICMP is True - 11. ICMP is False - 62.
+2022-02-23 00:46:08,589: main - INFO - Check ICMP for 80 host from 10.56.0.52 (eoip.r2.cs.orb) complete!
+ ICMP is True - 7. ICMP is False - 73.
+2022-02-23 00:46:14,818: main - INFO - Check ICMP for 76 host from 10.123.1.65 (eoip.r1.cs.soc) complete!
+ ICMP is True - 12. ICMP is False - 64.
+2022-02-23 00:46:29,022: main - INFO - Check ICMP for 79 host from 10.38.1.249 (eoip.r1.cs.irkutsk) complete!
+ ICMP is True - 7. ICMP is False - 72.
+2022-02-23 00:46:42,394: main - INFO - Check ICMP for 83 host from 10.54.0.172 (eoip.r3.cs-1.nsk) complete!
+ ICMP is True - 31. ICMP is False - 52.
+2022-02-23 00:46:51,747: main - INFO - Check ICMP for 82 host from 10.75.0.230 (eoip.r1.cs.cht) complete!
+ ICMP is True - 14. ICMP is False - 68.
+2022-02-23 00:47:08,357: main - INFO - Check ICMP for 78 host from 10.29.0.234 (eoip.r1.cs.arh) complete!
+ ICMP is True - 10. ICMP is False - 68.
+2022-02-23 00:47:22,891: main - INFO - Check ICMP for 90 host from 10.186.1.111 (eoip.r1.cs.nvt) complete!
+ ICMP is True - 12. ICMP is False - 78.
+2022-02-23 00:47:26,769: main - INFO - Check ICMP for 86 host from 10.13.0.205 (eoip.r1.cs.srk) complete!
+ ICMP is True - 2. ICMP is False - 84.
+2022-02-23 00:47:38,143: main - INFO - Check ICMP for 94 host from 10.61.0.66 (eoip.r2.cs.rnd) complete!
+ ICMP is True - 17. ICMP is False - 77.
+2022-02-23 00:47:43,266: main - INFO - Check ICMP for 89 host from 10.22.150.2 (eoip.r1.cs.bnl) complete!
+ ICMP is True - 26. ICMP is False - 63.
+2022-02-23 00:47:54,424: main - INFO - Check ICMP for 97 host from 10.116.0.230 (eoip.r2.cs.ncl) complete!
+ ICMP is True - 14. ICMP is False - 83.
+2022-02-23 00:47:55,064: main - INFO - Check ICMP for 95 host from 10.35.0.234 (eoip.r1.cs.cpv) complete!
+ ICMP is True - 10. ICMP is False - 85.
+2022-02-23 00:47:55,515: main - INFO - Check ICMP for 101 host from 10.163.1.202 (eoip.r1.cs.tlt) complete!
+ ICMP is True - 5. ICMP is False - 96.
+2022-02-23 00:47:59,799: main - INFO - Check ICMP for 96 host from 10.28.0.180 (eoip.r1.cs.bvk) complete!
+ ICMP is True - 19. ICMP is False - 77.
+2022-02-23 00:48:09,347: main - INFO - Check ICMP for 105 host from 10.69.0.17 (eoip.r2.cs.tvr) complete!
+ ICMP is True - 0. ICMP is False - 105.
+2022-02-23 00:48:21,157: main - INFO - Check ICMP for 105 host from 10.73.0.100 (eoip.r1.cs.ulk) complete!
+ ICMP is True - 7. ICMP is False - 98.
+2022-02-23 00:48:30,782: main - INFO - Check ICMP for 103 host from 10.135.0.234 (r1-eoip-vologda) complete!
+ ICMP is True - 9. ICMP is False - 94.
+2022-02-23 00:48:35,422: main - INFO - Check ICMP for 107 host from 10.68.0.8 (eoip.r1.cs.tmb) complete!
+ ICMP is True - 7. ICMP is False - 100.
+2022-02-23 00:48:36,015: main - INFO - Check ICMP for 102 host from 10.125.2.181 (r1-eoip-ussuriysk) complete!
+ ICMP is True - 14. ICMP is False - 88.
+2022-02-23 00:48:37,192: main - INFO - Check ICMP for 110 host from 10.74.0.109 (eoip.r2.cs-001.clb) complete!
+ ICMP is True - 7. ICMP is False - 103.
+2022-02-23 00:49:14,401: main - INFO - Check ICMP for 115 host from 10.174.1.111 (eoip.r1.cs.mgk) complete!
+ ICMP is True - 4. ICMP is False - 111.
+2022-02-23 00:50:06,750: main - INFO - Check ICMP for 117 host from 10.142.1.30 (eoip.r1.cs.kmr) complete!
+ ICMP is True - 18. ICMP is False - 99.
+2022-02-23 00:50:17,378: main - INFO - Check ICMP for 123 host from 10.11.0.234 (eoip.r1.cs.skr) complete!
+ ICMP is True - 8. ICMP is False - 115.
+2022-02-23 00:50:43,179: main - INFO - Check ICMP for 130 host from 10.123.3.65 (eoip.r1.cs.nrk) complete!
+ ICMP is True - 15. ICMP is False - 115.
+2022-02-23 00:50:48,707: main - INFO - Check ICMP for 129 host from 10.67.0.201 (eoip.r1.cs.sml) complete!
+ ICMP is True - 11. ICMP is False - 118.
+2022-02-23 00:50:59,391: main - INFO - Check ICMP for 133 host from 10.60.0.7 (eoip.r1.cs.psk) complete!
+ ICMP is True - 6. ICMP is False - 127.
+2022-02-23 00:51:08,277: main - INFO - Check ICMP for 136 host from 10.57.0.205 (eoip.r1.cs.orl) complete!
+ ICMP is True - 8. ICMP is False - 128.
+2022-02-23 00:51:17,897: main - INFO - Check ICMP for 139 host from 10.58.0.201 (eoip.r1.cs.pnz) complete!
+ ICMP is True - 5. ICMP is False - 134.
+2022-02-23 00:51:44,490: main - INFO - Check ICMP for 141 host from 10.30.0.65 (eoip.r1.cs.ash) complete!
+ ICMP is True - 14. ICMP is False - 127.
+2022-02-23 00:51:55,281: main - INFO - Check ICMP for 151 host from 10.116.0.215 (eoip.r1.cs.ncl) complete!
+ ICMP is True - 9. ICMP is False - 142.
+2022-02-23 00:52:07,329: main - INFO - Check ICMP for 137 host from 10.37.0.201 (eoip.r1.cs.ivo) complete!
+ ICMP is True - 5. ICMP is False - 132.
+2022-02-23 00:52:09,369: main - INFO - Check ICMP for 151 host from 10.66.99.200 (r1.eoip.cs-2.ekb) complete!
+ ICMP is True - 36. ICMP is False - 115.
+2022-02-23 00:52:11,442: main - INFO - Check ICMP for 130 host from 10.72.0.112 (eoip.r2.cgs.tmn) complete!
+ ICMP is True - 24. ICMP is False - 106.
+2022-02-23 00:53:13,301: main - INFO - Check ICMP for 158 host from 10.27.0.180 (eoip1.r1.cs.khb) complete!
+ ICMP is True - 11. ICMP is False - 147.
+2022-02-23 00:53:51,209: main - INFO - Check ICMP for 171 host from 10.55.0.55 (r1-eoip-cs_001.omsk) complete!
+ ICMP is True - 14. ICMP is False - 157.
+2022-02-23 00:55:27,366: main - INFO - Check ICMP for 187 host from 10.71.0.203 (EoIP.R1.CS.TUL) complete!
+ ICMP is True - 11. ICMP is False - 176.
+2022-02-23 00:55:27,741: main - INFO - Check ICMP for 190 host from 10.33.0.205 (eoip.r1.cs.vlm) complete!
+ ICMP is True - 15. ICMP is False - 175.
+2022-02-23 00:55:54,275: main - INFO - Check ICMP for 188 host from 10.42.0.30 (eoip.r1.cs.nvk) complete!
+ ICMP is True - 25. ICMP is False - 163.
+2022-02-23 00:56:07,184: main - INFO - Check ICMP for 198 host from 10.48.100.249 (eoip.r1.cs.lpk) complete!
+ ICMP is True - 19. ICMP is False - 179.
+2022-02-23 00:56:56,142: main - INFO - Check ICMP for 205 host from 10.2.0.111 (eoip.r1.cs.ufa) complete!
+ ICMP is True - 9. ICMP is False - 196.
+2022-02-23 00:57:27,834: main - INFO - Check ICMP for 213 host from 10.76.0.201 (eoip.r1.cs-1.yrl) complete!
+ ICMP is True - 43. ICMP is False - 170.
+2022-02-23 00:57:55,668: main - INFO - Check ICMP for 211 host from 10.39.0.99 (eoip.r1.cs.kgd) complete!
+ ICMP is True - 9. ICMP is False - 202.
+2022-02-23 00:58:05,428: main - INFO - Check ICMP for 222 host from 10.40.0.205 (eoip.r1.cs.klg) complete!
+ ICMP is True - 6. ICMP is False - 216.
+2022-02-23 00:58:06,588: main - INFO - Check ICMP for 221 host from 10.16.0.71 (eoip.r2.cs.kzn) complete!
+ ICMP is True - 10. ICMP is False - 211.
+2022-02-23 00:59:34,390: main - INFO - Check ICMP for 219 host from 10.62.0.205 (eoip.r1.cs.rzn) complete!
+ ICMP is True - 25. ICMP is False - 194.
+2022-02-23 01:01:17,511: main - INFO - Check ICMP for 238 host from 10.63.0.70 (eoip.r1.cs.smr) complete!
+ ICMP is True - 24. ICMP is False - 214.
+2022-02-23 01:02:10,927: main - INFO - Check ICMP for 266 host from 10.69.0.7 (eoip.r1.cs.tvr) complete!
+ ICMP is True - 20. ICMP is False - 246.
+2022-02-23 01:02:17,319: main - INFO - Check ICMP for 251 host from 10.25.0.180 (EOIP.R1.CS.VVK) complete!
+ ICMP is True - 39. ICMP is False - 212.
+2022-02-23 01:02:45,347: main - INFO - Check ICMP for 278 host from 10.164.0.199 (eoip.cs-1.srt) complete!
+ ICMP is True - 24. ICMP is False - 254.
+2022-02-23 01:02:53,237: main - INFO - Check ICMP for 245 host from 10.24.0.162 (eoip.r1.cs.krk) complete!
+ ICMP is True - 12. ICMP is False - 233.
+2022-02-23 01:04:41,924: main - INFO - Check ICMP for 306 host from 10.56.0.51 (eoip.r1.cs.orb) complete!
+ ICMP is True - 4. ICMP is False - 302.
+2022-02-23 01:05:48,186: main - INFO - Check ICMP for 304 host from 10.32.0.10 (eoip.r1.cs.brn) complete!
+ ICMP is True - 28. ICMP is False - 276.
+2022-02-23 01:06:22,014: main - INFO - Check ICMP for 303 host from 10.61.0.65 (eoip.r1.cs.rnd) complete!
+ ICMP is True - 38. ICMP is False - 265.
+2022-02-23 01:07:03,678: main - INFO - Check ICMP for 327 host from 10.72.0.111 (eoip.r1.cgs-1.tmn) complete!
+ ICMP is True - 38. ICMP is False - 289.
+2022-02-23 01:08:03,444: main - INFO - Check ICMP for 332 host from 10.34.0.10 (eoip.r1.cs.vgd) complete!
+ ICMP is True - 82. ICMP is False - 250.
+2022-02-23 01:09:25,839: main - INFO - Check ICMP for 312 host from 10.59.0.150 (eoip.r1.cs.perm) complete!
+ ICMP is True - 20. ICMP is False - 292.
+2022-02-23 01:09:30,379: main - INFO - Check ICMP for 352 host from 10.23.0.66 (r2-eoip-krasnodar) complete!
+ ICMP is True - 52. ICMP is False - 300.
+2022-02-23 01:11:17,843: main - INFO - Check ICMP for 372 host from 10.74.0.110 (eoip.r1.cs-001.clb) complete!
+ ICMP is True - 49. ICMP is False - 323.
+2022-02-23 01:14:22,573: main - INFO - Check ICMP for 416 host from 10.16.0.230 (eoip.r1.cs.kzn) complete!
+ ICMP is True - 23. ICMP is False - 393.
+2022-02-23 01:14:29,675: main - INFO - Check ICMP for 412 host from 10.23.0.66 (r2-eoip-krasnodar) complete!
+ ICMP is True - 80. ICMP is False - 332.
+2022-02-23 01:15:28,823: main - INFO - Check ICMP for 391 host from 10.23.0.65 (EOIP.R1.KRD_MASTER) complete!
+ ICMP is True - 33. ICMP is False - 358.
+2022-02-23 01:15:44,133: main - INFO - Check ICMP for 426 host from 10.52.0.204 (eoip.r1.cs.nng) complete!
+ ICMP is True - 20. ICMP is False - 406.
+2022-02-23 01:19:09,765: main - INFO - Check ICMP for 457 host from 10.54.0.170 (eoip.r1.cs.nsk) complete!
+ ICMP is True - 25. ICMP is False - 432.
+2022-02-23 01:19:09,821: main - INFO - Check ICMP success.
+2022-02-23 01:19:09,822: main - INFO - Save ICMP result to files...
+2022-02-23 01:19:20,221: main - INFO - Save ICMP result success.

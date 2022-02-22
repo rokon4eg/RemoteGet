@@ -1,61 +1,27 @@
---- Результат анализа конфигурации"
-    Исключены remote ip находящиеся в файлах "" и "" 
-    Всего проанализировано: вланов - 27, еоип - 9,     бриджей - 19, порт бриджей - 24,    бондингов - 4 
-    Бриджы без портов - 2
-Бриджы с одним портом - 5
-Одиночные интерфейсы в бриджах - 5
-Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 2
+--- Результат анализа конфигурации eoip.r1.cs.els (10.8.0.10) г. Элиста ---"
+    Исключены remote ip находящиеся в файлах "tu\Элиста_tu.txt" и "" 
+    Всего проанализировано: вланов - 6, еоип - 1,     бриджей - 8, порт бриджей - 4,    бондингов - 1 
+    Бриджы без портов - 3
+Бриджы с одним портом - 0
+Одиночные интерфейсы в бриджах - 0
+Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 1
 Eoip, которых нет ни в бриджах, ни во вланах, ни в bonding - 0
-Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 25
-Итого: 39
+Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 1
+Итого: 5
 
----Бриджы без портов - 2:
+---Бриджы без портов - 3:
 bridge_ofis-sha	/interface bridge port print where bridge="bridge_ofis-sha"	/interface bridge disable [find where name="bridge_ofis-sha"]
+bridge272_Lukoil_AZS803_Severnaya_pr_zona	/interface bridge port print where bridge="bridge272_Lukoil_AZS803_Severnaya_pr_zona"	/interface bridge disable [find where name="bridge272_Lukoil_AZS803_Severnaya_pr_zona"]
 bridge_mng	/interface bridge port print where bridge="bridge_mng"	/interface bridge disable [find where name="bridge_mng"]
 
----Бриджы с одним портом - 5:
-bridge_VLAN345_RTK3	/interface bridge port print where bridge="bridge_VLAN345_RTK3"	/interface bridge disable [find where name="bridge_VLAN345_RTK3"]
-bridge322	/interface bridge port print where bridge="bridge322"	/interface bridge disable [find where name="bridge322"]
-bridge_VLAN80_VIDEO	/interface bridge port print where bridge="bridge_VLAN80_VIDEO"	/interface bridge disable [find where name="bridge_VLAN80_VIDEO"]
-bridge354_RTK	/interface bridge port print where bridge="bridge354_RTK"	/interface bridge disable [find where name="bridge354_RTK"]
-bridge272_Lukoil_AZS803_Severnaya_pr_zona	/interface bridge port print where bridge="bridge272_Lukoil_AZS803_Severnaya_pr_zona"	/interface bridge disable [find where name="bridge272_Lukoil_AZS803_Severnaya_pr_zona"]
+---Бриджы с одним портом - 0:
 
----Одиночные интерфейсы в бриджах - 5:
-vlan272_Lukoil_Severnaya_pr_zona	/interface vlan print where name="vlan272_Lukoil_Severnaya_pr_zona"	/interface vlan disable [find where name="vlan272_Lukoil_Severnaya_pr_zona"]
-VLAN345_RTK3	/interface vlan print where name="VLAN345_RTK3"	/interface vlan disable [find where name="VLAN345_RTK3"]
-VLAN322_Rosbank_1MKR|2	/interface vlan print where name="VLAN322_Rosbank_1MKR|2"	/interface vlan disable [find where name="VLAN322_Rosbank_1MKR|2"]
-VLAN80_VIDEO	/interface vlan print where name="VLAN80_VIDEO"	/interface vlan disable [find where name="VLAN80_VIDEO"]
-vlan354_RTK	/interface vlan print where name="vlan354_RTK"	/interface vlan disable [find where name="vlan354_RTK"]
+---Одиночные интерфейсы в бриджах - 0:
 
----Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 2:
-vlan274w	/interface vlan print where name="vlan274w"	/interface vlan disable [find where name="vlan274w"]
+---Вланы, которых нет ни в бриджах, ни в ip адресах, ни в bonding - 1:
 vlan10_PublikIp Multiwan	/interface vlan print where name="vlan10_PublikIp Multiwan"	/interface vlan disable [find where name="vlan10_PublikIp Multiwan"]
 
 ---Eoip, которых нет ни в бриджах, ни во вланах, ни в bonding - 0:
 
----Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 25:
-10.8.201.32	/interface eoip print where remote-address=10.8.201.32	/interface eoip disable [find where remote-address=10.8.201.32]
-10.8.201.44	/interface eoip print where remote-address=10.8.201.44	/interface eoip disable [find where remote-address=10.8.201.44]
-10.8.201.194	/interface eoip print where remote-address=10.8.201.194	/interface eoip disable [find where remote-address=10.8.201.194]
-10.8.201.50	/interface eoip print where remote-address=10.8.201.50	/interface eoip disable [find where remote-address=10.8.201.50]
-10.8.201.200	/interface eoip print where remote-address=10.8.201.200	/interface eoip disable [find where remote-address=10.8.201.200]
-10.8.2.3	/interface eoip print where remote-address=10.8.2.3	/interface eoip disable [find where remote-address=10.8.2.3]
-10.8.201.61	/interface eoip print where remote-address=10.8.201.61	/interface eoip disable [find where remote-address=10.8.201.61]
-10.8.201.63	/interface eoip print where remote-address=10.8.201.63	/interface eoip disable [find where remote-address=10.8.201.63]
-10.8.201.26	/interface eoip print where remote-address=10.8.201.26	/interface eoip disable [find where remote-address=10.8.201.26]
-10.8.201.34	/interface eoip print where remote-address=10.8.201.34	/interface eoip disable [find where remote-address=10.8.201.34]
-10.8.201.210	/interface eoip print where remote-address=10.8.201.210	/interface eoip disable [find where remote-address=10.8.201.210]
-10.8.201.24	/interface eoip print where remote-address=10.8.201.24	/interface eoip disable [find where remote-address=10.8.201.24]
-10.8.201.199	/interface eoip print where remote-address=10.8.201.199	/interface eoip disable [find where remote-address=10.8.201.199]
-80.244.224.60	/interface eoip print where remote-address=80.244.224.60	/interface eoip disable [find where remote-address=80.244.224.60]
-188.133.176.90	/interface eoip print where remote-address=188.133.176.90	/interface eoip disable [find where remote-address=188.133.176.90]
-10.8.201.22	/interface eoip print where remote-address=10.8.201.22	/interface eoip disable [find where remote-address=10.8.201.22]
-10.8.201.56	/interface eoip print where remote-address=10.8.201.56	/interface eoip disable [find where remote-address=10.8.201.56]
+---Remote ip адреса из ppp and eoip которых нет в ту и нет в активных ppp - 1:
 10.8.2.1	/interface eoip print where remote-address=10.8.2.1	/interface eoip disable [find where remote-address=10.8.2.1]
-10.8.201.214	/interface eoip print where remote-address=10.8.201.214	/interface eoip disable [find where remote-address=10.8.201.214]
-10.8.201.30	/interface eoip print where remote-address=10.8.201.30	/interface eoip disable [find where remote-address=10.8.201.30]
-10.8.201.46	/interface eoip print where remote-address=10.8.201.46	/interface eoip disable [find where remote-address=10.8.201.46]
-10.8.201.196	/interface eoip print where remote-address=10.8.201.196	/interface eoip disable [find where remote-address=10.8.201.196]
-10.8.201.206	/interface eoip print where remote-address=10.8.201.206	/interface eoip disable [find where remote-address=10.8.201.206]
-10.8.201.14	/interface eoip print where remote-address=10.8.201.14	/interface eoip disable [find where remote-address=10.8.201.14]
-10.8.201.66	/interface eoip print where remote-address=10.8.201.66	/interface eoip disable [find where remote-address=10.8.201.66]
