@@ -68,10 +68,20 @@ def save_list2json_file(cm_list, dir, filename):
         file.write(json.dumps(cm_list))
 
 
+def save_list2excel_file(cm_list, dir, filename):
+    cm_json = json.dumps(cm_list)
+    data = pandas.read_json(cm_json)
+    data.to_excel(os.path.join(dir, filename))
+
+
 def load_list_from_json_file(dir, filename):
     with open(os.path.join(dir, filename), 'rt') as file:
         return json.loads(file.read())
 
+def load_list_from_excel_file(dir, filename):
+    data = pandas.read_excel(filename)
+    with open(os.path.join(dir, filename), 'rt') as file:
+        return json.loads(file.read())
 
 def main():
     dir = 'tu_excel'
@@ -85,6 +95,7 @@ def main():
             extdata.save_ip2files('tu')
             cm_list += extdata.get_cm_logipass()
     save_list2json_file(cm_list, dir, 'cm_list.txt')
+    save_list2excel_file(cm_list, dir, 'cm_list.xlsx')
 
 
 if __name__ == "__main__":

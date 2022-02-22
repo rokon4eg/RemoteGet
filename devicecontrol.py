@@ -76,7 +76,29 @@ class Devices:
             self.device_list.append(dev)
             # self.loger.root.setLevel(logging.INFO)
             self.loger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
-        pass
+
+    def load_from_excel(self, filename):
+        """
+        Заполняет device_list на основе данных в Excel файле"""
+        data = pandas.read_excel(filename, index_col=0)
+        config = dict()
+        config.setdefault('host', '')
+        config.setdefault('auth_username', '')
+        config.setdefault('auth_password', '')
+        config.setdefault('auth_strict_key', 'false')
+        config.setdefault('platform', 'mikrotik_routeros')
+        config.setdefault('transport', 'ssh2')
+
+        for config in config_yaml:
+            config['host'] = '192.168.0.1'
+            config['auth_username'] = 'admin'
+            config['auth_password'] = 'pass'
+            dev = Device(config)
+            dev.ip = config['host']
+            self.device_list.append(dev)
+            # self.loger.root.setLevel(logging.INFO)
+            self.loger.root.info(f'load_from_yaml: ip={dev.ip}, transport={config["transport"]}')
+
 
     def load_export_compactfromfiles(self, dir=''):
         """
@@ -149,19 +171,16 @@ class Devices:
         for dev in self.device_list:
             if dev.icmp_result:
                 file_icmp = tools.get_file_name(dev.name, self.dir_output_icmp, 'xlsx')
-                data_json = dict()
-                data = None
+                old_data = None
                 if os.path.exists(file_icmp):
-                    data = pandas.read_excel(file_icmp)
-                    # data_json = json.loads(data.to_json())
-                res_json = json.dumps({str(date.today()):dev.icmp_result})
-                new_data = pandas.read_json(json.dumps(res_json))
-
-                data_json.setdefault(str(date.today()),dev.icmp_result)
-                new_data = pandas.read_json(json.dumps(data_json))
-                with open(file_icmp, 'wt') as file:
-                    new_data.to_excel()
-#                     TODO: дописать метод сохранения в эксель
+                    old_data = pandas.read_excel(file_icmp,index_col=0)
+                res_json = json.dumps({str(date.today()): dev.icmp_result})
+                new_data = pandas.read_json(res_json)
+                if old_data:
+                    data = old_data.merge(new_data, left_index=True, right_index=True, how='outer')
+                else:
+                    data = new_data
+                data.to_excel(file_icmp)
 
 
 class Device:

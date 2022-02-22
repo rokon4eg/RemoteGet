@@ -2,6 +2,7 @@ import devicecontrol as dc
 # from devicecontrol import DevicesCommander, CommandRunner
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
+CM_FILE = 'cm_list.xlsx'
 '''
 - host: 192.168.0.1
   auth_username: admin
@@ -17,17 +18,6 @@ REMOTE_NODE_FILE = 'remote_node.yaml'
 def main():
     devices = dc.Devices()
     devices.load_from_yaml(REMOTE_NODE_FILE)
-
-    ip_list = [
-        '10.76.0.1',
-        # '1.1.1.1',
-        # '2.2.2.2',
-        # '4.1.8.8',
-        # '1.1.1.1',
-        # '2.2.2.2',
-        '4.1.8.8',
-        '1.1.1.1'
-    ]
 
     devcom = dc.DevicesCommander(devices)
 
