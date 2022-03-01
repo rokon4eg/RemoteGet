@@ -128,12 +128,13 @@ class MikrotikConfig:
             if not ports:
                 self.br_empty.add(bridge)
             elif len(ports) == 1:
-                self.br_single.add(bridge)
+                # self.br_single.add(bridge)
                 if ports[0] not in self.int_ip_addr:
-                    # исключаем интерфейсы которые есть в "ip addresss" и в bonding
+                    # исключаем бриджы и интерфейсы, если интерфейсы есть в "ip addresss" или в bonding
                     # DONE! переписать вычитание bonding с учетом проверки на вхождение
                     # int_single.update(exclude_int_in_bonding([ports[0]], bonding))
                     # int = ''.join(exclude_int_in_bonding([ports[0]], bonding))
+                    self.br_single.add(bridge)
                     if int := ''.join(self.exclude_int_in_bonding([ports[0]], self.bonding)):
                         type_int = ''
                         if int in self.name_eoip:

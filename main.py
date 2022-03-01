@@ -4,7 +4,7 @@ import tools
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list.xlsx'
-SLICE = 50 #  максимальное кол-во ip адресов для проверки в одном потоке
+SLICE = 50  # максимальное кол-во ip адресов для проверки в одном потоке
 
 
 # device_list = []
@@ -30,17 +30,21 @@ def main():
     devices.logger.root.info(f'Get "config" and "ip ppp active" from {len(devices_for_work)} hosts...')
     for device in devices_for_work:
         if device.enabled:
-            comrun1 = dc.CommandRunner(device)
-            devcom.append_coroutine(comrun1.get_config())
+            # comrun1 = dc.CommandRunner(device)
+            # devcom.append_coroutine(comrun1.get_config())
 
             comrun2 = dc.CommandRunner(device)
             devcom.append_coroutine(comrun2.get_ppp_active())
     devcom.run()
     devices.logger.root.info(f'Get "config" and "ip ppp active" success.')
 
-    devices.logger.root.info(f'Save export compact to files...')
-    devices.save_export_compact2files()
-    devices.logger.root.info(f'Save export compact success.')
+    # devices.logger.root.info(f'Save "export compact" to files...')
+    # devices.save_export_compact2files()
+    # devices.logger.root.info(f'Save "export compact" success.')
+
+    devices.logger.root.info(f'Load "export compact" from files...')
+    devices.load_export_compact_from_files(date_='2022-03-01')
+    devices.logger.root.info(f'Load "export compact" success.')
 
     devices.logger.root.info(f'Parse config...')
     devices.parse_config()
@@ -50,16 +54,16 @@ def main():
     # devices.save_parse_result2files()
     # devices.logger.root.info(f'Save result parse config success.')
 
-    devices.logger.root.info(f'Check ICMP...')
-    for device in devices_for_work:
-        if device.enabled and not (device.mikroconfig is None):
-            #  DONE Реализовать запуск check_icmp в несколько потоков если ip больше 100
-            # SLICE максимальное кол-во ip адресов для проверки в одном потоке
-            for ip_list in tools.list_split(device.mikroconfig.ip_free, SLICE):
-                comrun1 = dc.CommandRunner(device)
-                devcom.append_coroutine(comrun1.check_icmp(ip_list))
-    devcom.run()
-    devices.logger.root.info(f'Check ICMP success.')
+    # devices.logger.root.info(f'Check ICMP...')
+    # for device in devices_for_work:
+    #     if device.enabled and not (device.mikroconfig is None):
+    #         # DONE Реализовать запуск check_icmp в несколько потоков если ip больше 100
+    #         # SLICE максимальное кол-во ip адресов для проверки в одном потоке
+    #         for ip_list in tools.list_split(device.mikroconfig.ip_free, SLICE):
+    #             comrun1 = dc.CommandRunner(device)
+    #             devcom.append_coroutine(comrun1.check_icmp(ip_list))
+    # devcom.run()
+    # devices.logger.root.info(f'Check ICMP success.')
 
     devices.logger.root.info(f'Save result parse config to files...')
     devices.save_parse_result2files()

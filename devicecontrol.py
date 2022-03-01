@@ -97,6 +97,7 @@ class Logger(metaclass=SingletonMeta):
     #     logger.setLevel(level)
     #     logger.
 
+
 class Devices:
     config_example = dict()
     config_example['host'] = ''
@@ -147,13 +148,26 @@ class Devices:
             self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
                                 f' transport={config["transport"]}')
 
-    def load_export_compactfromfiles(self, dir=''):
+    def load_export_compact_from_files(self, dir_='', date_=''):
         """
         TODO Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
         """
-        if not dir:
-            dir = self.dir_export_compact
-        pass
+        if not dir_:
+            dir_ = self.dir_export_compact
+        if date_:
+            dir_ = os.path.join(dir_, date_)
+        if os.path.exists(dir_):
+            for dev in self.device_list:
+                filename = tools.get_file_name(dev.name, suffix=self.dir_export_compact, dir=dir_)
+                if os.path.exists(filename):
+                    with open(filename, 'rt') as file:
+                        dev.export_compact = file.read()
+                    if dev.export_compact:
+                        self.logger.export_compact.info(f'device with ip:{dev.ip} load config from {filename}')
+                    else:
+                        self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
+        else:
+            self.logger.export_compact.error(f'! Dir "{dir_}" does not exist.')
 
     def save_export_compact2files(self, dir=''):
         """
@@ -183,27 +197,27 @@ class Devices:
             os.mkdir(dir)
         summary = []
         for dev in self.device_list:
-            if not(dev.mikroconfig is None):
+            if not (dev.mikroconfig is None):
                 general_param = GeneralParam(dev.mikroconfig)
                 output_msg, text_for_output_in_file = general_param.get_output_info()
                 dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
 
                 if dev.result_parsing:
-                    filename = tools.get_file_name(dev.city+'_'+dev.name, suffix=self.dir_output_parse, dir=dir)
+                    filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_output_parse, dir=dir)
                     with open(filename, 'wt') as file:
                         file.write(dev.result_parsing)
                     self.logger.output_parse.info(f'device with ip:{dev.ip} save result parse config to {filename}')
                     summary.append(dev.get_summary_parse_result())
                 else:
                     self.logger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
-        file_name = 'summary_'+str(date.today())
+        file_name = 'summary_' + str(date.today())
         file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
         if os.path.exists(file_summary):
             file_name += '(1)'
             file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
 
         try:
-            pandas.read_json(json.dumps(summary)).to_excel(file_summary)
+            pandas.read_json(json.dumps(summary)).sort_values('City').to_excel(file_summary)
         except Exception as err:
             msg = f'! Error save file {file_summary} with parse result.\n' \
                   f'{err}'
@@ -228,7 +242,7 @@ class Devices:
             os.mkdir(self.dir_output_icmp)
         for dev in self.device_list:
             if dev.icmp_result:
-                file_icmp = tools.get_file_name(dev.city+'_'+dev.name, suffix=self.dir_output_icmp,
+                file_icmp = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_output_icmp,
                                                 dir=self.dir_output_icmp, ext='xlsx')
                 res_json = json.dumps({str(date.today()): dev.icmp_result})
                 new_data = pandas.read_json(res_json)
@@ -324,13 +338,13 @@ class DeviceManagement:
         try:
             id = self.device.id
             await self.session.close()
-            msg = f'[{id}]: Host {self.session.host} disconnected'\
+            msg = f'[{id}]: Host {self.session.host} disconnected' \
                   f' via {self.session.transport_name}:{self.session.port}'
             print(msg)
             self.device.logger.connections.info(msg)
         except ScrapliException or OSError as err:
-            msg = f'[{id}]: ! Close error from {self.session.host}'\
-                  f' via {self.session.transport_name}:{self.session.port}\n'\
+            msg = f'[{id}]: ! Close error from {self.session.host}' \
+                  f' via {self.session.transport_name}:{self.session.port}\n' \
                   f'{err}'
             print(msg)
             self.device.logger.connections.info(msg)
@@ -346,12 +360,12 @@ class DeviceManagement:
                 await asyncio.sleep(SLEEP)
                 response = await self.session.send_command(command)
                 id = self.device.id
-                msg = f'{"-" * 50}\n[{id}]: Result from {self.session.host}'\
+                msg = f'{"-" * 50}\n[{id}]: Result from {self.session.host}' \
                       f' via {self.session.transport_name}:{self.session.port}'
                 print(msg)
                 self.device.logger.connections.info(msg)
                 print(pr, response.channel_input)
-                self.device.logger.connections.info(pr+' '+response.channel_input)
+                self.device.logger.connections.info(pr + ' ' + response.channel_input)
                 if print_result:
                     print(response.result)
                     self.device.logger.connections.info(response.result)
@@ -363,8 +377,8 @@ class DeviceManagement:
                 print(msg)
                 self.device.logger.connections.info(msg)
             except ScrapliException as err:
-                msg = f'[{id}]: ! Send command {command} error on {self.session.host}'\
-                      f' via {self.session.transport_name}:{self.session.port}\n'\
+                msg = f'[{id}]: ! Send command {command} error on {self.session.host}' \
+                      f' via {self.session.transport_name}:{self.session.port}\n' \
                       f'{err}'
                 print(msg)
                 self.device.logger.connections.error(msg)
