@@ -35,7 +35,7 @@ class MikrotikConfig:
         self.set_bridges()  # br_empty, br_single, int_single_dict
         self.vlans_free = self.get_vlans_free()  # --vlans_free
         self.eoip_free = self.get_eoip_free()  # --eoip_free
-        self.ip_free = self.get_ip_free()  # --ip_free
+        self.ip_free, self.ip_in_tu = self.get_ip()  # --ip_free; ip_in_tu - IP которые есть в ТУ, для формирования ЗМС
         self.icmp_false = set()  # --icmp_false
         self.icmp_true = set()  # --icmp_true
 
@@ -90,16 +90,19 @@ class MikrotikConfig:
         with open(filename, encoding='ANSI') as file:
             return list(re.findall(regex, file.read()))
 
-    def get_ip_free(self):
+    def get_ip(self):
         """
         Сравнить IP адреса из PPP secrets и remote address из EOIP с адресами в ТУ (ip_from_address_plan.txt)
         Исключить активные PPP (ppp_active_from_cm.txt)
         """
-        res = set()
+        ip_free_ = set()
+        ip_in_tu_ = set()
         ip_ppp = set(parse_section(regex_section.ppp_secret, self.config))
         ip_eoip = set(parse_section(regex_section.interface_eoip, self.config, 3))
-        res.update((ip_ppp | ip_eoip) - self.ip_from_tu - self.ip_active_ppp)
-        return res
+        ip_all = (ip_ppp | ip_eoip)
+        ip_free_.update(ip_all - self.ip_from_tu - self.ip_active_ppp)
+        ip_in_tu_.update(ip_all - ip_free_)
+        return ip_free_, ip_in_tu_
 
     def get_eoip_free(self):
         """

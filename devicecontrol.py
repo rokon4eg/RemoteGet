@@ -66,36 +66,24 @@ class Logger(metaclass=SingletonMeta):
         self.dir = 'log'
         if not os.path.exists(self.dir):
             os.mkdir(self.dir)
-        log_format = '%(asctime)s: %(name)s - %(levelname)s - %(message)s'
-        self.root = self.set_logger('main', log_format, 'main.log')
-        self.export_compact = self.set_logger('export_compact', log_format, 'export_compact.log')
-        self.output_parse = self.set_logger('output_parse', log_format, 'output_parse.log')
-        self.output_icmp = self.set_logger('output_icmp', log_format, 'output_icmp.log')
-        self.device_com = self.set_logger('device_com', log_format, 'device_com.log')
-        self.connections = self.set_logger('connections', log_format, 'connections.log')
-        self.tu = self.set_logger('tu', log_format, 'tu.log')
+        self.log_format = '%(asctime)s: %(name)s - %(levelname)s - %(message)s'
+        self.root = self.set_logger('main', 'main.log')
+        self.export_compact = self.set_logger('export_compact', 'export_compact.log')
+        self.output_parse = self.set_logger('output_parse', 'output_parse.log')
+        self.output_icmp = self.set_logger('output_icmp', 'output_icmp.log')
+        self.device_com = self.set_logger('device_com', 'device_com.log')
+        self.connections = self.set_logger('connections', 'connections.log')
+        self.tu = self.set_logger('tu', 'tu.log')
 
-    def set_logger(self, logger_name, log_format, file_out):
+    def set_logger(self, logger_name, file_out, log_format=''):
+        if not log_format:
+            log_format = self.log_format
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.INFO)
         handler = logging.FileHandler(os.path.join(self.dir, file_out))
         handler.setFormatter(logging.Formatter(log_format))
         logger.addHandler(handler)
-        # handler_info = self.__get_handler(file_out, log_format, logging.INFO)
-        # handler_warn = self.__get_handler(file_out, log_format, logging.WARNING)
-        # logger.addHandler(handler_info)
-        # logger.addHandler(handler_warn)
         return logger
-
-    # def __get_handler(self, file_out, log_format, level):
-    #     handler = logging.FileHandler(os.path.join(self.dir, file_out))
-    #     handler.setLevel(level)
-    #     handler.setFormatter(logging.Formatter(log_format))
-    #     return handler
-
-    # def send_msg(self, logger: logging.Logger, level, msg, ):
-    #     logger.setLevel(level)
-    #     logger.
 
 
 class Devices:
@@ -296,6 +284,7 @@ class Device:
             res['IP free'] = len(self.mikroconfig.ip_free)
             res['False ICMP'] = len(self.mikroconfig.icmp_false)
             res['True ICMP'] = len(self.mikroconfig.icmp_true)
+            res['IP in TU'] = len(self.mikroconfig.ip_in_tu)
         return res
 
 
@@ -404,9 +393,9 @@ class DeviceManagement:
         return response_list
 
 
-class CommandRunner(DeviceManagement):
+class CommandRunner_Get(DeviceManagement):
     """
-    Класс реализует расширенное выполнение команд на одном устройстве
+    Класс реализует расширенное выполнение команд чтения на одном устройстве
     """
     GET_IP = '/ip address print'
     SEND_PING = '/ping %s count=5'
@@ -519,6 +508,58 @@ class CommandRunner(DeviceManagement):
     #         print(err)
     #     except asyncio.exceptions.TimeoutError:
     #         print("asyncio.exceptions.TimeoutError", device["host"])
+
+
+class CommandRunner_Put(DeviceManagement):
+    """
+    Класс реализует выполнение команд записи на одном устройстве
+    """
+    PUT_DISABLE_INTERFACE_BY_NAME = '/interface {0} disable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
+    PUT_ENABLE_INTERFACE_BY_NAME = '/interface {0} enable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
+
+    PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={0}]'
+    PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={0}]'
+
+    def __init__(self, device):
+        super().__init__(device)
+        self.logger = Logger()
+        self.logger.command_put = self.logger.set_logger('command_put', 'command_put.log')
+
+    async def disable_interface_by_name(self, type_int, int_list):
+        if type(int_list) is set:
+            int_list = list(int_list)
+        for int in int_list:
+            msg = f'disable_interface_by_name in {self.device.city}: ' \
+                  f'{self.device.ip}({self.device.name}) '\
+                  f'{self.PUT_DISABLE_INTERFACE_BY_NAME.format(type_int, int)}'
+            print(msg)
+            self.logger.command_put.info(msg)
+        await asyncio.sleep(SLEEP)
+
+    async def enable_interface_by_name(self, type_int, int_list):
+        if type(int_list) is set:
+            int_list = list(int_list)
+        for int in int_list:
+            msg = f'enable_interface_by_name in {self.device.city}: '\
+                  f'{self.device.ip}({self.device.name}) '\
+                  f'{self.PUT_ENABLE_INTERFACE_BY_NAME.format(type_int, int)}'
+            print(msg)
+            self.logger.command_put.info(msg)
+        await asyncio.sleep(SLEEP)
+
+    async def disable_eoip_by_remote_ip(self, ip_list):
+        if type(ip_list) is set:
+            ip_list = list(ip_list)
+        for ip in ip_list:
+            self.logger.command_put.info(f'disable_eoip_by_remote_ip: - {ip}')
+        await asyncio.sleep(SLEEP)
+
+    async def enable_eoip_by_remote_ip(self, ip_list):
+        if type(ip_list) is set:
+            ip_list = list(ip_list)
+        for ip in ip_list:
+            self.logger.command_put.info(f'enable_eoip_by_remote_ip: - {ip}')
+        await asyncio.sleep(SLEEP)
 
 
 class DevicesCommander:
