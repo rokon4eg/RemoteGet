@@ -40,6 +40,15 @@ class ExternalData:
             res.append(dict(zip(cm.keys(), values)))
         return res
 
+    def get_ctr_logipass(self):
+        """Вернуть список CTR:
+        Город	NAME_DEVICE	IP_DEVICE	LOGIN	PASSWORD где NAME_DEVICE = ctr """
+        cm = self.data[self.data['NAME_DEVICE'].str.contains('ctr')]
+        res = list()
+        for values in cm.sort_values('Город').values:
+            res.append(dict(zip(cm.keys(), values)))
+        return res
+
     def load_data_from_file(self, filename):
         data = ''
         ext = filename.rsplit(".")[-1]
@@ -57,9 +66,9 @@ def get_filelist_from_dir(dir):
     return os.listdir(dir)
 
 
-def get_file_name(name, dir, ext='txt'):
+def get_file_name(name, suffix, dir, ext='txt'):
     '''return -> dir/name_dir.ext'''
-    filename = name + '_' + dir + '.' + ext
+    filename = name + '_' + suffix + '.' + ext
     return os.path.join(dir, filename)
 
 
@@ -78,25 +87,43 @@ def load_list_from_json_file(dir, filename):
     with open(os.path.join(dir, filename), 'rt') as file:
         return json.loads(file.read())
 
+
 def load_list_from_excel_file(dir, filename):
     data = pandas.read_excel(filename)
     with open(os.path.join(dir, filename), 'rt') as file:
         return json.loads(file.read())
 
+
+def list_split(ip_list, base):
+    if isinstance(ip_list, set):
+        ip_list = list(ip_list)
+    res = []
+    if len(ip_list) > base:
+        slice = len(ip_list) // base + 1
+    else:
+        slice = 1
+    for i in range(slice):
+        res.append(ip_list[base * i:base * (i + 1)])
+    return res
+
+
 def main():
     dir = 'tu_excel'
     # file = 'тест - РНД.xlsx'
     cm_list = []
+    ctr_list = []
     file_list = get_filelist_from_dir(dir)
     for file in file_list:
         ext = file.rsplit(".")[-1]
         if 'xls' in ext and not file.startswith('~'):
             extdata = ExternalData(os.path.join(dir, file))
             extdata.save_ip2files('tu')
-            cm_list += extdata.get_cm_logipass()
-    save_list2json_file(cm_list, dir, 'cm_list.txt')
-    save_list2excel_file(cm_list, dir, 'cm_list.xlsx')
+            # cm_list += extdata.get_cm_logipass()
+            ctr_list += extdata.get_ctr_logipass()
+    # save_list2json_file(cm_list, dir, 'cm_list.txt')
+    # save_list2excel_file(cm_list, dir, 'cm_list.xlsx')
 
+    save_list2excel_file(ctr_list, '', 'ctr_list.xlsx')
 
 
 if __name__ == "__main__":

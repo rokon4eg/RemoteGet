@@ -36,6 +36,8 @@ class MikrotikConfig:
         self.vlans_free = self.get_vlans_free()  # --vlans_free
         self.eoip_free = self.get_eoip_free()  # --eoip_free
         self.ip_free = self.get_ip_free()  # --ip_free
+        self.icmp_false = set()  # --icmp_false
+        self.icmp_true = set()  # --icmp_true
 
     @property
     def all_bridges(self):
@@ -176,7 +178,10 @@ class GeneralParam:
         self.add('--eoip_free', 'EOIP, которых нет ни в бриджах, ни во вланах, ни в bonding', mikrot.eoip_free,
                  '/interface eoip print where name="{0}"',
                  '/interface eoip disable [find where name="{0}"]')
-        self.add('--ip_free', 'Remote ip адреса из PPP and EOIP которых нет в ТУ и нет в активных PPP', mikrot.ip_free,
+        self.add('--ip_free', 'Remote ip адреса из PPP и EOIP которых нет в ТУ и нет в активных PPP', mikrot.ip_free,
+                 '/interface eoip print where remote-address={0}',
+                 '/interface eoip disable [find where remote-address={0}]')
+        self.add('--icmp_false', 'IP из списка --ip_free, не отвечающие на ICMP c ЦМ ', mikrot.icmp_false,
                  '/interface eoip print where remote-address={0}',
                  '/interface eoip disable [find where remote-address={0}]')
 
@@ -220,7 +225,7 @@ class GeneralParam:
         for param in params:
             variable_for_print = self.value[param][1]
             template_for_print = self.value[param][2]
-            s = f"\n---{self.value[param][0].capitalize()} - {len(variable_for_print)}:\n"
+            s = f"\n---{self.value[param][0]} - {len(variable_for_print)}:\n"
             if template_for_print:  # Проверка наличия шаблона для печати
                 # Если значения хранятся в словаре, значит есть доп параметр для печати
                 if type(variable_for_print) is dict:

@@ -1,4 +1,6 @@
 scrapli
+scrapli-community
+scrapli-asyncssh
 PyYAML
 pandas
 openpyxl

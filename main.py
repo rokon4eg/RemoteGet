@@ -1,8 +1,11 @@
 import devicecontrol as dc
 # from devicecontrol import DevicesCommander, CommandRunner
+import tools
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list.xlsx'
+SLICE = 50 #  максимальное кол-во ip адресов для проверки в одном потоке
+
 
 # device_list = []
 
@@ -14,6 +17,7 @@ def main():
 
     devcom = dc.DevicesCommander(devices)
 
+    # devices_for_work = devcom.devices.device_list[27:30]
     devices_for_work = devcom.devices.device_list
 
     devices.logger.root.info(f'Get "sysname" from {len(devices_for_work)} hosts...')
@@ -42,17 +46,24 @@ def main():
     devices.parse_config()
     devices.logger.root.info(f'Parse config success.')
 
-    devices.logger.root.info(f'Save result parse config to files...')
-    devices.save_parse_result2files()
-    devices.logger.root.info(f'Save result parse config success.')
+    # devices.logger.root.info(f'Save result parse config to files...')
+    # devices.save_parse_result2files()
+    # devices.logger.root.info(f'Save result parse config success.')
 
     devices.logger.root.info(f'Check ICMP...')
     for device in devices_for_work:
         if device.enabled and not (device.mikroconfig is None):
-            comrun1 = dc.CommandRunner(device)
-            devcom.append_coroutine(comrun1.check_icmp(device.mikroconfig.ip_free))
+            #  DONE Реализовать запуск check_icmp в несколько потоков если ip больше 100
+            # SLICE максимальное кол-во ip адресов для проверки в одном потоке
+            for ip_list in tools.list_split(device.mikroconfig.ip_free, SLICE):
+                comrun1 = dc.CommandRunner(device)
+                devcom.append_coroutine(comrun1.check_icmp(ip_list))
     devcom.run()
     devices.logger.root.info(f'Check ICMP success.')
+
+    devices.logger.root.info(f'Save result parse config to files...')
+    devices.save_parse_result2files()
+    devices.logger.root.info(f'Save result parse config success.')
 
     devices.logger.root.info(f'Save ICMP result to files...')
     devices.save_icmp_result2files()
