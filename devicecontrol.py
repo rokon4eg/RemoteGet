@@ -96,7 +96,7 @@ class Devices:
     config_example['auth_strict_key'] = False
     config_example['platform'] = 'mikrotik_routeros'
     config_example['transport'] = 'asyncssh'
-    config_example['timeout_socket'] = 20
+    config_example['timeout_socket'] = 30
     config_example['timeout_transport'] = 30
 
     def __init__(self):
@@ -322,7 +322,7 @@ class DeviceManagement:
             msg = f'[{id}]: ! Open error {self.session.host} via {self.session.transport_name}:{self.session.port}' \
                   f'\n{err}'
             print(msg)
-            self.device.logger.connections.info(msg)
+            self.device.logger.connections.warning(msg)
         return self.session
 
     async def close_session(self):
@@ -338,7 +338,7 @@ class DeviceManagement:
                   f' via {self.session.transport_name}:{self.session.port}\n' \
                   f'{err}'
             print(msg)
-            self.device.logger.connections.info(msg)
+            self.device.logger.connections.warning(msg)
         return None
 
     async def send_command(self, command, print_result=True, is_need_open=True):
@@ -577,9 +577,7 @@ class CommandRunner_Put(DeviceManagement):
                     self.logger.command_put.info(msg)
                     await self.close_session()
                     # DONE отправка команды на ЦМ - set_status_command
-        await asyncio.sleep(SLEEP)
-
-
+        # await asyncio.sleep(SLEEP)
 
     async def disable_eoip_by_remote_ip(self, ip_list):
         if type(ip_list) is set:
