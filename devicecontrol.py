@@ -5,6 +5,7 @@ from threading import Lock
 from typing import List, Coroutine
 
 import pandas
+from numpy.distutils.cpuinfo import command_info
 from scrapli.exceptions import ScrapliException
 from scrapli import AsyncScrapli
 
@@ -73,6 +74,7 @@ class Logger(metaclass=SingletonMeta):
         self.output_icmp = self.set_logger('output_icmp', 'output_icmp.log')
         self.device_com = self.set_logger('device_com', 'device_com.log')
         self.connections = self.set_logger('connections', 'connections.log')
+        self.command_put = self.set_logger('command_put', 'command_put.log')
         self.tu = self.set_logger('tu', 'tu.log')
 
     def set_logger(self, logger_name, file_out, log_format=''):
@@ -146,7 +148,7 @@ class Devices:
             dir_ = os.path.join(dir_, date_)
         if os.path.exists(dir_):
             for dev in self.device_list:
-                filename = tools.get_file_name(dev.name, suffix=self.dir_export_compact, dir=dir_)
+                filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_export_compact, dir=dir_)
                 if os.path.exists(filename):
                     with open(filename, 'rt') as file:
                         dev.export_compact = file.read()
@@ -167,7 +169,7 @@ class Devices:
             os.mkdir(dir)
         for dev in self.device_list:
             if dev.export_compact:
-                filename = tools.get_file_name(dev.name, suffix=self.dir_export_compact, dir=dir)
+                filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_export_compact, dir=dir)
                 with open(filename, 'wt') as file:
                     file.write(dev.export_compact)
                 self.logger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
@@ -516,6 +518,7 @@ class CommandRunner_Put(DeviceManagement):
     """
     PUT_DISABLE_INTERFACE_BY_NAME = '/interface {0} disable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
     PUT_ENABLE_INTERFACE_BY_NAME = '/interface {0} enable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
+    PRINT_INTERFACE_BY_NAME = '/interface {0} print where name="{1}"'  # {0} = [bridge|vlan|eoip]
 
     PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={0}]'
     PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={0}]'
@@ -523,29 +526,60 @@ class CommandRunner_Put(DeviceManagement):
     def __init__(self, device):
         super().__init__(device)
         self.logger = Logger()
-        self.logger.command_put = self.logger.set_logger('command_put', 'command_put.log')
 
-    async def disable_interface_by_name(self, type_int, int_list):
-        if type(int_list) is set:
-            int_list = list(int_list)
-        for int in int_list:
-            msg = f'disable_interface_by_name in {self.device.city}: ' \
-                  f'{self.device.ip}({self.device.name}) '\
-                  f'{self.PUT_DISABLE_INTERFACE_BY_NAME.format(type_int, int)}'
-            print(msg)
-            self.logger.command_put.info(msg)
+    async def set_status_interfaces(self, action):
+        if self.device.mikroconfig:
+            bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
+            await self.set_status_interfaces_by_name(action, 'bridge', bridges)  # set_status bridge empty and single
+
+            eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
+            await self.set_status_interfaces_by_name(action, 'eoip', eoip_single)  # set_status eoip single
+
+            vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
+            await self.set_status_interfaces_by_name(action, 'vlan', vlan_single)  # set_status vlan single
+
+            eoips = self.device.mikroconfig.eoip_free
+            await self.set_status_interfaces_by_name(action, 'eoip', eoips)  # set_status eoip free
+
+            vlans = self.device.mikroconfig.vlans_free
+            await self.set_status_interfaces_by_name(action, 'vlan', vlans)  # set_status vlan free
+
+    async def set_status_interfaces_by_name(self, action, type_int, int_list, print_result=True, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            if type(int_list) is set:
+                int_list = list(int_list)
+            set_status_command = ''
+            if action == 'disable':
+                set_status_command = self.PUT_DISABLE_INTERFACE_BY_NAME
+            elif action == 'enable':
+                set_status_command = self.PUT_ENABLE_INTERFACE_BY_NAME
+            elif action == 'print':
+                set_status_command = self.PRINT_INTERFACE_BY_NAME
+            if set_status_command:
+                count = 0
+                try:
+                    await self.open_session()
+                    if self.session.isalive():
+                        for int in int_list:
+                            count += 1
+                            msg = f'{count}/{len(int_list)} {action}_interfaces_by_name in {self.device.city}: ' \
+                                  f'{self.device.ip}({self.device.name}) ' \
+                                  f'{set_status_command.format(type_int, int)}'
+                            self.logger.command_put.info(msg)
+                            response = await self.send_command(set_status_command.format(type_int, int),
+                                                               print_result=print_result,
+                                                               is_need_open=False)
+                            # if print_result:
+                            #     self.logger.command_put.info(response)
+                finally:
+                    msg = f'{action}_interfaces_by_name in {self.device.city} for {len(int_list)} interfaces complete!'
+                    print(msg)
+                    self.logger.command_put.info(msg)
+                    await self.close_session()
+                    # DONE отправка команды на ЦМ - set_status_command
         await asyncio.sleep(SLEEP)
 
-    async def enable_interface_by_name(self, type_int, int_list):
-        if type(int_list) is set:
-            int_list = list(int_list)
-        for int in int_list:
-            msg = f'enable_interface_by_name in {self.device.city}: '\
-                  f'{self.device.ip}({self.device.name}) '\
-                  f'{self.PUT_ENABLE_INTERFACE_BY_NAME.format(type_int, int)}'
-            print(msg)
-            self.logger.command_put.info(msg)
-        await asyncio.sleep(SLEEP)
+
 
     async def disable_eoip_by_remote_ip(self, ip_list):
         if type(ip_list) is set:

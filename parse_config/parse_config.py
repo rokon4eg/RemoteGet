@@ -31,7 +31,7 @@ class MikrotikConfig:
             self.ip_active_ppp = set(self.getipfromfile(file_active, regExFindIP)) if self.file_active else set()
         self.br_empty = set()  # ---br_empty
         self.br_single = set()  # ---br_single
-        self.int_single_dict = dict()  # --intsingle
+        self.int_single_dict = dict()  # --intsingle = {int: type_int}
         self.set_bridges()  # br_empty, br_single, int_single_dict
         self.vlans_free = self.get_vlans_free()  # --vlans_free
         self.eoip_free = self.get_eoip_free()  # --eoip_free
@@ -137,14 +137,15 @@ class MikrotikConfig:
                     # DONE! переписать вычитание bonding с учетом проверки на вхождение
                     # int_single.update(exclude_int_in_bonding([ports[0]], bonding))
                     # int = ''.join(exclude_int_in_bonding([ports[0]], bonding))
-                    self.br_single.add(bridge)
                     if int := ''.join(self.exclude_int_in_bonding([ports[0]], self.bonding)):
                         type_int = ''
                         if int in self.name_eoip:
                             type_int = 'eoip'
                         elif int in self.vlans:
                             type_int = 'vlan'
-                        self.int_single_dict.update({int: type_int})
+                        if type_int:
+                            self.br_single.add(bridge)
+                            self.int_single_dict.update({int: type_int})
 
     def get_vlans_free(self):
         """
