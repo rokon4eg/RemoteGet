@@ -5,7 +5,6 @@ from threading import Lock
 from typing import List, Coroutine
 
 import pandas
-from numpy.distutils.cpuinfo import command_info
 from scrapli.exceptions import ScrapliException
 from scrapli import AsyncScrapli
 
@@ -104,7 +103,8 @@ class Devices:
         self.dir_export_compact = 'export_compact'
         self.dir_tu = 'tu'
         self.dir_output_parse = 'output_parse'
-        self.dir_output_icmp = 'output_icmp'
+        self.dir_output_icmp_ip_free = 'output_icmp_ip_free'
+        self.dir_output_icmp_ip_in_tu = 'output_icmp_ip_in_tu'
         self.logger = Logger()
 
     def load_from_yaml(self, filename):
@@ -140,8 +140,9 @@ class Devices:
 
     def load_export_compact_from_files(self, dir_='', date_=''):
         """
-        TODO Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
+        DONE Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
         """
+        self.logger.root.info(f'Load "export compact" from files...')
         if not dir_:
             dir_ = self.dir_export_compact
         if date_:
@@ -158,11 +159,13 @@ class Devices:
                         self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
         else:
             self.logger.export_compact.error(f'! Dir "{dir_}" does not exist.')
+        self.logger.root.info(f'Load "export compact" success.')
 
     def save_export_compact2files(self, dir=''):
         """
         Метод сохраняет конфигурации каждого устройства в отдельный файл в выделенном каталоге dir
         """
+        self.logger.root.info(f'Save "export compact" to files...')
         if not dir:
             dir = os.path.join(self.dir_export_compact, str(date.today()))
         if not os.path.exists(dir):
@@ -175,12 +178,14 @@ class Devices:
                 self.logger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
             else:
                 self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
+        self.logger.root.info(f'Save "export compact" success.')
 
     def save_parse_result2files(self, dir=''):
         """
         Метод сохраняет результат парсинга конфигураций каждого устройства в отдельный файл в выделенном каталоге dir
         + file_summary
         """
+        self.logger.root.info(f'Save parse config to files...')
         if not dir:
             dir = os.path.join(self.dir_output_parse, str(date.today()))
         if not os.path.exists(dir):
@@ -202,9 +207,11 @@ class Devices:
                     self.logger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
         file_name = 'summary_' + str(date.today())
         file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
-        if os.path.exists(file_summary):
-            file_name += '(1)'
-            file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
+        ind = 0
+        while os.path.exists(file_summary):
+            ind += 1
+            file_name_new = file_name + f'({str(ind)})'
+            file_summary = tools.get_file_name(file_name_new, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
 
         try:
             pandas.read_json(json.dumps(summary)).sort_values('City').to_excel(file_summary)
@@ -213,8 +220,10 @@ class Devices:
                   f'{err}'
             print(msg)
             self.logger.root.warning(msg)
+        self.logger.root.info(f'Save parse config success.')
 
     def parse_config(self):
+        self.logger.root.info(f'Parse config...')
         for dev in self.device_list:
             if dev.export_compact:
                 file_tu = tools.get_file_name(dev.city, suffix=self.dir_tu, dir=self.dir_tu)
@@ -226,15 +235,27 @@ class Devices:
                 #
                 # output_msg, text_for_output_in_file = general_param.get_output_info()
                 # dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
+        self.logger.root.info(f'Parse config success.')
 
-    def save_icmp_result2files(self):
-        if not os.path.exists(self.dir_output_icmp):
-            os.mkdir(self.dir_output_icmp)
-        for dev in self.device_list:
-            if dev.icmp_result:
-                file_icmp = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_output_icmp,
-                                                dir=self.dir_output_icmp, ext='xlsx')
-                res_json = json.dumps({str(date.today()): dev.icmp_result})
+    def save_icmp_result2files(self, type_ip_list):
+        self.logger.root.info(f'Save ICMP result to files...')
+        if not os.path.exists(self.dir_output_icmp_ip_free):
+            os.mkdir(self.dir_output_icmp_ip_free)
+        if not os.path.exists(self.dir_output_icmp_ip_in_tu):
+            os.mkdir(self.dir_output_icmp_ip_in_tu)
+        for device in self.device_list:
+            ip_result = ''
+            dir_output = ''
+            if type_ip_list == 'ip_free':
+                ip_result = device.icmp_ip_free_result
+                dir_output = self.dir_output_icmp_ip_free
+            elif type_ip_list == 'ip_in_tu':
+                ip_result = device.icmp_ip_in_tu_result
+                dir_output = self.dir_output_icmp_ip_in_tu
+            if ip_result and dir_output:
+                file_icmp = tools.get_file_name(device.city + '_' + device.name, suffix=dir_output,
+                                                dir=dir_output, ext='xlsx')
+                res_json = json.dumps({str(date.today()): ip_result})
                 new_data = pandas.read_json(res_json)
                 if os.path.exists(file_icmp):
                     old_data = pandas.read_excel(file_icmp, index_col=0)
@@ -248,6 +269,7 @@ class Devices:
                           f'{err}'
                     print(msg)
                     self.logger.root.warning(msg)
+        self.logger.root.info(f'Save ICMP result success.')
 
 
 class Device:
@@ -266,7 +288,8 @@ class Device:
         self.name = ''
         self.city = ''
         self.result_parsing = ''
-        self.icmp_result = dict()
+        self.icmp_ip_free_result = dict()
+        self.icmp_ip_in_tu_result = dict()
         self.export_compact = ''
         self.ip_ppp_active = set()
         self.mikroconfig: MikrotikConfig = None
@@ -274,7 +297,7 @@ class Device:
 
     def get_summary_parse_result(self):
         res = dict()
-        if not self.mikroconfig is None:
+        if self.mikroconfig is not None:
             res['City'] = self.city
             res['sys name'] = self.name
             res['MikroTik IP'] = self.ip
@@ -284,9 +307,11 @@ class Device:
             res['vlans free'] = len(self.mikroconfig.vlans_free)
             res['EOIP free'] = len(self.mikroconfig.eoip_free)
             res['IP free'] = len(self.mikroconfig.ip_free)
-            res['False ICMP'] = len(self.mikroconfig.icmp_false)
-            res['True ICMP'] = len(self.mikroconfig.icmp_true)
+            res['False ICMP IP free'] = len(self.mikroconfig.icmp_false)
+            res['True ICMP IP free'] = len(self.mikroconfig.icmp_true)
             res['IP in TU'] = len(self.mikroconfig.ip_in_tu)
+            res['False ICMP IP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_false)
+            res['True ICMP IP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_true)
         return res
 
 
@@ -361,8 +386,8 @@ class DeviceManagement:
                     print(response.result)
                     self.device.logger.connections.info(response.result)
                 else:
-                    msg = f'--- No output. Variable "print_result" set is {print_result}'
-                    print(msg)
+                    # msg = f'--- No output. Variable "print_result" set is {print_result}'
+                    # print(msg)
                     self.device.logger.connections.info(msg)
                 msg = 'elapsed time = ' + str(response.elapsed_time)
                 print(msg)
@@ -409,7 +434,8 @@ class CommandRunner_Get(DeviceManagement):
         super().__init__(device)
         self.logger = Logger()
 
-    async def check_icmp(self, ip_list, print_result=True, check_enabled=False):
+    async def check_icmp(self, ip_list, type_ip_list, print_result=True, check_enabled=False):
+        """type_ip_list = [ 'ip_free' | 'ip_in_tu' ]"""
         if (not check_enabled) or self.device.enabled:
             regx = r'sent=(\d)+.*received=(\d)+.*packet-loss=(\d+%)'
             result = dict()
@@ -427,27 +453,39 @@ class CommandRunner_Get(DeviceManagement):
                         response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
                                                            is_need_open=False)
                         ping_count = re.findall(regx, response.result)
-                        if int(ping_count[0][1]) >= 3:
-                            date.today()
-                            result.update({ip: 'Успешно {1} из {0}. Потерь - {2}'.format(*ping_count[0])})
-                            true_icmp.add(ip)
-                            print(msg % 'TRUE')
-                            self.logger.output_icmp.info(msg % 'TRUE')
-                        else:
-                            result.update({ip: 'FALSE'})
-                            false_icmp.add(ip)
-                            self.device.false_icmp_list.append(ip)
-                            print(msg % 'FALSE')
-                            self.logger.output_icmp.info(msg % 'FALSE')
+                        # TODO IndexError: list index out of range
+                        try:
+                            if int(ping_count[0][1]) >= 3:
+                                date.today()
+                                result.update({ip: 'Успешно {1} из {0}. Потерь - {2}'.format(*ping_count[0])})
+                                true_icmp.add(ip)
+                                print(msg % 'TRUE')
+                                self.logger.output_icmp.info(msg % 'TRUE')
+                            else:
+                                result.update({ip: 'FALSE'})
+                                false_icmp.add(ip)
+                                self.device.false_icmp_list.append(ip)
+                                print(msg % 'FALSE')
+                                self.logger.output_icmp.info(msg % 'FALSE')
+                        except Exception as err:
+                            msg = msg % 'Error' + str(ping_count)
+                            self.logger.output_icmp.error(msg)
+                            self.logger.root.error(msg)
+                            print(msg)
             finally:
-                message = f'Check ICMP for {len(ip_list)} host from {self.device.ip} ({self.device.name}) complete!' \
+                message = f'Check ICMP {type_ip_list} for {len(ip_list)} host from {self.device.ip} ({self.device.name}) complete!' \
                           f'\n ICMP is True - {len(true_icmp)}. ICMP is False - {len(false_icmp)}.'
                 print(message)
                 self.logger.root.info(message)
                 await self.close_session()
-            self.device.icmp_result.update(result)
-            self.device.mikroconfig.icmp_false.update(false_icmp)
-            self.device.mikroconfig.icmp_true.update(true_icmp)
+            if type_ip_list == 'ip_free':
+                self.device.icmp_ip_free_result.update(result)
+                self.device.mikroconfig.icmp_false.update(false_icmp)
+                self.device.mikroconfig.icmp_true.update(true_icmp)
+            elif type_ip_list == 'ip_in_tu':
+                self.device.icmp_ip_in_tu_result.update(result)
+                self.device.mikroconfig.icmp_ip_in_tu_false.update(false_icmp)
+                self.device.mikroconfig.icmp_ip_in_tu_true.update(true_icmp)
 
     async def get_config(self, print_result=False, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
@@ -527,22 +565,22 @@ class CommandRunner_Put(DeviceManagement):
         super().__init__(device)
         self.logger = Logger()
 
-    async def set_status_interfaces(self, action):
+    async def set_status_interfaces(self, action, print_result):
         if self.device.mikroconfig:
             bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
-            await self.set_status_interfaces_by_name(action, 'bridge', bridges)  # set_status bridge empty and single
+            await self.set_status_interfaces_by_name(action, 'bridge', bridges, print_result)  # set_status bridge empty and single
 
             eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
-            await self.set_status_interfaces_by_name(action, 'eoip', eoip_single)  # set_status eoip single
+            await self.set_status_interfaces_by_name(action, 'eoip', eoip_single, print_result)  # set_status eoip single
 
             vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
-            await self.set_status_interfaces_by_name(action, 'vlan', vlan_single)  # set_status vlan single
+            await self.set_status_interfaces_by_name(action, 'vlan', vlan_single, print_result)  # set_status vlan single
 
             eoips = self.device.mikroconfig.eoip_free
-            await self.set_status_interfaces_by_name(action, 'eoip', eoips)  # set_status eoip free
+            await self.set_status_interfaces_by_name(action, 'eoip', eoips, print_result)  # set_status eoip free
 
             vlans = self.device.mikroconfig.vlans_free
-            await self.set_status_interfaces_by_name(action, 'vlan', vlans)  # set_status vlan free
+            await self.set_status_interfaces_by_name(action, 'vlan', vlans, print_result)  # set_status vlan free
 
     async def set_status_interfaces_by_name(self, action, type_int, int_list, print_result=True, check_enabled=False):
         if (not check_enabled) or self.device.enabled:

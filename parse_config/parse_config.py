@@ -38,6 +38,8 @@ class MikrotikConfig:
         self.ip_free, self.ip_in_tu = self.get_ip()  # --ip_free; ip_in_tu - IP которые есть в ТУ, для формирования ЗМС
         self.icmp_false = set()  # --icmp_false
         self.icmp_true = set()  # --icmp_true
+        self.icmp_ip_in_tu_true = set()  # icmp ip_in_tu true
+        self.icmp_ip_in_tu_false = set()  # icmp ip_in_tu false
 
     @property
     def all_bridges(self):
