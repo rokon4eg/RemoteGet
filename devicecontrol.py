@@ -63,7 +63,7 @@ class Logger(metaclass=SingletonMeta):
         #                     format='%(asctime)s: %(name)s - %(levelname)s - %(message)s',
         #                     filemode='w')
         # self.root = logging.getLogger()
-        self.dir = 'log'
+        self.dir = os.path.join('log', datetime.today().strftime("%Y-%m-%d %H.%M.%S"))
         if not os.path.exists(self.dir):
             os.mkdir(self.dir)
         self.log_format = '%(asctime)s: %(name)s - %(levelname)s - %(message)s'
@@ -610,7 +610,8 @@ class CommandRunner_Put(DeviceManagement):
                             # if print_result:
                             #     self.logger.command_put.info(response)
                 finally:
-                    msg = f'{action}_interfaces_by_name in {self.device.city} for {len(int_list)} interfaces complete!'
+                    msg = f'Сomplete {action}_interfaces_by_name in {self.device.city}: ' \
+                          f'{self.device.ip}({self.device.name}) for {len(int_list)} interfaces.'
                     print(msg)
                     self.logger.command_put.info(msg)
                     await self.close_session()
