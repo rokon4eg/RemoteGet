@@ -17,7 +17,7 @@ class ExternalData:
             res.update({group: framegr.get_group(group).IP_DEVICE.sort_values().to_list()})
         return res
 
-    def save_ip2files(self, dir=''):
+    def save_ip2files(self, suffix, dir=''):
         if not dir:
             dir = 'tu'
         if not os.path.exists(dir):
@@ -26,7 +26,7 @@ class ExternalData:
         group_ip = self.group_ip_by_city()
         for group_name, ip_list in group_ip.items():
             # filename = group_name + '_' + dir + '.txt'
-            filename = get_file_name(group_name, dir)
+            filename = get_file_name(group_name, suffix, dir)
             with open(filename, 'wt') as file:
                 file.write('\n'.join(ip_list))
                 print(f'\tSave {len(ip_list)} ip to file {filename}')
@@ -60,10 +60,6 @@ class ExternalData:
             data = data[~data.IP_DEVICE.isna()]
             print('Success.', 'Elapsed', '%.3s' % (time.time() - now), 'seconds.')
         self.data = data
-
-
-def get_filelist_from_dir(dir):
-    return os.listdir(dir)
 
 
 def get_file_name(name, suffix, dir, ext='txt'):
@@ -112,7 +108,8 @@ def main():
     # file = 'тест - РНД.xlsx'
     cm_list = []
     ctr_list = []
-    file_list = get_filelist_from_dir(dir)
+    # file_list = os.listdir(dir)
+    file_list = ['Устройства с данными для мониторинга - Москва.xlsx']
     for file in file_list:
         ext = file.rsplit(".")[-1]
         if 'xls' in ext and not file.startswith('~'):

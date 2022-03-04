@@ -72,8 +72,9 @@ class Logger(metaclass=SingletonMeta):
         self.output_parse = self.set_logger('output_parse', 'output_parse.log')
         self.output_icmp = self.set_logger('output_icmp', 'output_icmp.log')
         self.device_com = self.set_logger('device_com', 'device_com.log')
-        self.connections = self.set_logger('connections', 'connections.log')
+        self.terminal_output = self.set_logger('terminal_output', 'terminal_output.log')
         self.command_put = self.set_logger('command_put', 'command_put.log')
+        self.error = self.set_logger('error', 'error.log')
         self.tu = self.set_logger('tu', 'tu.log')
 
     def set_logger(self, logger_name, file_out, log_format=''):
@@ -95,8 +96,8 @@ class Devices:
     config_example['auth_strict_key'] = False
     config_example['platform'] = 'mikrotik_routeros'
     config_example['transport'] = 'asyncssh'
-    config_example['timeout_socket'] = 30
-    config_example['timeout_transport'] = 30
+    config_example['timeout_socket'] = 50
+    config_example['timeout_transport'] = 50
 
     def __init__(self):
         self.device_list: List[Device] = []
@@ -124,19 +125,21 @@ class Devices:
         """
         Заполняет device_list на основе данных в Excel файле
         """
-        data = pandas.read_excel(filename, index_col=0)
+        data = pandas.read_excel(filename)
         for node in data.iloc:
-            config = self.config_example.copy()
-            config['host'] = node['IP_DEVICE']
-            config['auth_username'] = node['LOGIN']
-            config['auth_password'] = node['PASSWORD']
-            dev = Device(config.copy())
-            dev.city = node['Город']
-            dev.name = node['NAME_DEVICE']
-            self.device_list.append(dev)
-            # self.logger.root.setLevel(logging.INFO)
-            self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
-                                f' transport={config["transport"]}')
+            if str(node['run']).lower() != 'false':
+                config = self.config_example.copy()
+                config['host'] = node['IP_DEVICE']
+                config['auth_username'] = node['LOGIN']
+                config['auth_password'] = node['PASSWORD']
+                dev = Device(connect_param=config.copy(),
+                             city=node['Город'],
+                             name=node['NAME_DEVICE'],
+                             id=node['ID'])
+                self.device_list.append(dev)
+                # self.logger.root.setLevel(logging.INFO)
+                self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
+                                    f' transport={config["transport"]}')
 
     def load_export_compact_from_files(self, dir_='', date_=''):
         """
@@ -158,10 +161,10 @@ class Devices:
                     else:
                         self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
         else:
-            self.logger.export_compact.error(f'! Dir "{dir_}" does not exist.')
+            self.logger.error.error(f'! Dir "{dir_}" does not exist. Call method: "load_export_compact_from_files"')
         self.logger.root.info(f'Load "export compact" success.')
 
-    def save_export_compact2files(self, dir=''):
+    def save_export_compact_to_files(self, dir=''):
         """
         Метод сохраняет конфигурации каждого устройства в отдельный файл в выделенном каталоге dir
         """
@@ -180,7 +183,7 @@ class Devices:
                 self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
         self.logger.root.info(f'Save "export compact" success.')
 
-    def save_parse_result2files(self, dir=''):
+    def save_parse_result_to_files(self, dir=''):
         """
         Метод сохраняет результат парсинга конфигураций каждого устройства в отдельный файл в выделенном каталоге dir
         + file_summary
@@ -196,7 +199,6 @@ class Devices:
                 general_param = GeneralParam(dev.mikroconfig)
                 output_msg, text_for_output_in_file = general_param.get_output_info()
                 dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
-
                 if dev.result_parsing:
                     filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_output_parse, dir=dir)
                     with open(filename, 'wt') as file:
@@ -212,14 +214,14 @@ class Devices:
             ind += 1
             file_name_new = file_name + f'({str(ind)})'
             file_summary = tools.get_file_name(file_name_new, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
-
         try:
-            pandas.read_json(json.dumps(summary)).sort_values('City').to_excel(file_summary)
+            pandas.read_json(json.dumps(summary)).to_excel(file_summary, index=0)
+            # pandas.read_json(json.dumps(summary)).sort_values('City').to_excel(file_summary)
         except Exception as err:
-            msg = f'! Error save file {file_summary} with parse result.\n' \
+            msg = f'! Error save file {file_summary} with parse result. Call method: "save_parse_result2files"\n' \
                   f'{err}'
             print(msg)
-            self.logger.root.warning(msg)
+            self.logger.error.error(msg)
         self.logger.root.info(f'Save parse config success.')
 
     def parse_config(self):
@@ -265,39 +267,44 @@ class Devices:
                 try:
                     data.to_excel(file_icmp)
                 except Exception as err:
-                    msg = f'! Error save file {file_icmp} with icmp result.\n' \
+                    msg = f'! Error save file {file_icmp} with icmp result. Call method: "save_icmp_result2files"\n' \
                           f'{err}'
                     print(msg)
-                    self.logger.root.warning(msg)
+                    self.logger.error.error(msg)
         self.logger.root.info(f'Save ICMP result success.')
 
 
 class Device:
     count = -1
 
-    def __new__(cls, *args, **kwargs):
-        cls.count += 1
-        return super().__new__(cls)
+    # def __new__(cls, *args, **kwargs):
+    #     cls.count += 1
+    #     return super().__new__(cls)
 
-    def __init__(self, connect_param):
-        self.false_icmp_list = []
-        self.id = self.count
-        self.enabled = False
+    def __init__(self, connect_param, city, name, id):
         self.connect_param = connect_param
+        self.city = city
+        self.name = name
+        self.id = id
+        self.false_icmp_list = []
+        self.enabled = False
         self.ip = connect_param['host']
-        self.name = ''
-        self.city = ''
         self.result_parsing = ''
         self.icmp_ip_free_result = dict()
         self.icmp_ip_in_tu_result = dict()
         self.export_compact = ''
         self.ip_ppp_active = set()
         self.mikroconfig: MikrotikConfig = None
+        self.count_interface = -1
+        self.count_interface_active = -1
+        self.count_interface_disabled = -1
+        self.count_ppp_active = -1
         self.logger = Logger()
 
     def get_summary_parse_result(self):
         res = dict()
         if self.mikroconfig is not None:
+            res['ID'] = self.id
             res['City'] = self.city
             res['sys name'] = self.name
             res['MikroTik IP'] = self.ip
@@ -312,6 +319,10 @@ class Device:
             res['IP in TU'] = len(self.mikroconfig.ip_in_tu)
             res['False ICMP IP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_false)
             res['True ICMP IP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_true)
+            res['int count'] = self.count_interface
+            res['int active'] = self.count_interface_active
+            res['int disabled'] = self.count_interface_disabled
+            res['PPP active'] = self.count_ppp_active
         return res
 
 
@@ -337,33 +348,35 @@ class DeviceManagement:
             id = self.device.id
             msg = f'[{id}]: Connecting to {self.session.host} via {self.session.transport_name}:{self.session.port}...'
             print(msg)
-            self.device.logger.connections.info(msg)
+            self.device.logger.terminal_output.info(msg)
             await self.session.open()
             if self.session.isalive():
-                msg = f'[{id}]: Connected to {self.session.host} via {self.session.transport_name}:{self.session.port}'
+                msg = f'[{id}]: Connected to {self.device.city}({self.session.host})'
+                      # f'via {self.session.transport_name}:{self.session.port}'
                 print(msg)
-                self.device.logger.connections.info(msg)
+                self.device.logger.terminal_output.info(msg)
         except Exception as err:
-            msg = f'[{id}]: ! Open error {self.session.host} via {self.session.transport_name}:{self.session.port}' \
-                  f'\n{err}'
+            msg = f'[{id}]: ! Open session error {self.device.city} {self.session.host}- {err}'
+                  # f'via {self.session.transport_name}:{self.session.port}: {err}'
             print(msg)
-            self.device.logger.connections.warning(msg)
+            self.device.logger.terminal_output.warning(msg)
+            self.device.logger.error.error(msg)
         return self.session
 
     async def close_session(self):
         try:
             id = self.device.id
             await self.session.close()
-            msg = f'[{id}]: Host {self.session.host} disconnected' \
-                  f' via {self.session.transport_name}:{self.session.port}'
+            msg = f'[{id}]: Host {self.session.host} disconnected'
+                  # f' via {self.session.transport_name}:{self.session.port}'
             print(msg)
-            self.device.logger.connections.info(msg)
+            self.device.logger.terminal_output.info(msg)
         except ScrapliException or OSError as err:
-            msg = f'[{id}]: ! Close error from {self.session.host}' \
-                  f' via {self.session.transport_name}:{self.session.port}\n' \
-                  f'{err}'
+            msg = f'[{id}]: ! Close error from {self.session.host}- {err}'
+                  # f' via {self.session.transport_name}:{self.session.port}'
             print(msg)
-            self.device.logger.connections.warning(msg)
+            self.device.logger.terminal_output.warning(msg)
+            self.device.logger.error.error(msg)
         return None
 
     async def send_command(self, command, print_result=True, is_need_open=True):
@@ -372,32 +385,32 @@ class DeviceManagement:
         response = None
         if self.session.isalive():
             try:
+                id = self.device.id
                 pr = await self.session.get_prompt()
                 await asyncio.sleep(SLEEP)
                 response = await self.session.send_command(command)
-                id = self.device.id
-                msg = f'{"-" * 50}\n[{id}]: Result from {self.session.host}' \
-                      f' via {self.session.transport_name}:{self.session.port}'
+                msg = f'{"-" * 50}\n[{id}]: Result from {self.session.host}:'
+                      # f' via {self.session.transport_name}:{self.session.port}'
                 print(msg)
-                self.device.logger.connections.info(msg)
+                self.device.logger.terminal_output.info(msg)
                 print(pr, response.channel_input)
-                self.device.logger.connections.info(pr + ' ' + response.channel_input)
+                self.device.logger.terminal_output.info(pr + ' ' + response.channel_input)
                 if print_result:
                     print(response.result)
-                    self.device.logger.connections.info(response.result)
+                    self.device.logger.terminal_output.info(str(response.result))
                 else:
                     # msg = f'--- No output. Variable "print_result" set is {print_result}'
                     # print(msg)
-                    self.device.logger.connections.info(msg)
+                    self.device.logger.terminal_output.info(msg)
                 msg = 'elapsed time = ' + str(response.elapsed_time)
                 print(msg)
-                self.device.logger.connections.info(msg)
+                self.device.logger.terminal_output.info(msg)
             except ScrapliException as err:
-                msg = f'[{id}]: ! Send command {command} error on {self.session.host}' \
-                      f' via {self.session.transport_name}:{self.session.port}\n' \
-                      f'{err}'
+                msg = f'[{id}]: ! Send command {command} error on {self.session.host}- {err}'
+                      # f' via {self.session.transport_name}:{self.session.port} Call method: "send_command"\n' \
+                      # f'{err}'
                 print(msg)
-                self.device.logger.connections.error(msg)
+                self.device.logger.error.error(msg)
             finally:
                 if is_need_open:
                     await self.close_session()
@@ -410,6 +423,7 @@ class DeviceManagement:
             try:
                 if type(commands) != list:
                     commands = [commands]
+                # response_list = await self.session.send_commands(commands,strip_prompt=True)
                 for command in commands:
                     response = await self.send_command(command, print_result=print_result, is_need_open=False)
                     response_list.append(response)
@@ -429,6 +443,11 @@ class CommandRunner_Get(DeviceManagement):
     GET_CONFIG = '/export compact'
     GET_PPP_ACTIVE = '/ppp active pr detail'
     GET_NAME = '/system identity print'
+
+    GET_COUNT_INTERFACE = '/interface print count-only'
+    GET_COUNT_INTERFACE_ACTIVE = '/interface print count-only where running'
+    GET_COUNT_INTERFACE_DISABLED = '/interface print count-only where disabled'
+    GET_COUNT_PPP_ACTIVE = '/ppp active print count-only'
 
     def __init__(self, device):
         super().__init__(device)
@@ -452,9 +471,9 @@ class CommandRunner_Get(DeviceManagement):
                         msg = f'Check {count}/{len(ip_list)} ICMP from {self.device.ip} to host {ip} - %s'
                         response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
                                                            is_need_open=False)
-                        ping_count = re.findall(regx, response.result)
                         # TODO IndexError: list index out of range
                         try:
+                            ping_count = re.findall(regx, response.result)
                             if int(ping_count[0][1]) >= 3:
                                 date.today()
                                 result.update({ip: 'Успешно {1} из {0}. Потерь - {2}'.format(*ping_count[0])})
@@ -468,9 +487,9 @@ class CommandRunner_Get(DeviceManagement):
                                 print(msg % 'FALSE')
                                 self.logger.output_icmp.info(msg % 'FALSE')
                         except Exception as err:
-                            msg = msg % 'Error' + str(ping_count)
+                            msg = msg % 'Error' + str(ping_count) + 'Call method: "check_icmp"'
                             self.logger.output_icmp.error(msg)
-                            self.logger.root.error(msg)
+                            self.logger.error.error(msg)
                             print(msg)
             finally:
                 message = f'Check ICMP {type_ip_list} for {len(ip_list)} host from {self.device.ip} ({self.device.name}) complete!' \
@@ -510,13 +529,32 @@ class CommandRunner_Get(DeviceManagement):
                 self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name})'
                                                f' don`t return ppp active')
 
-    async def get_sysname(self):
+    async def get_counting(self, print_result=False, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            response_list = await self.send_commands([self.GET_COUNT_INTERFACE,
+                                                      self.GET_COUNT_INTERFACE_ACTIVE,
+                                                      self.GET_COUNT_INTERFACE_DISABLED,
+                                                      self.GET_COUNT_PPP_ACTIVE
+                                                      ], print_result=print_result)
+            try:
+                self.device.count_interface = response_list[0].result
+                self.device.count_interface_active = response_list[1].result
+                self.device.count_interface_disabled = response_list[2].result
+                self.device.count_ppp_active = response_list[3].result
+                self.logger.device_com.info(f'Host with IP {self.device.ip} ({self.device.name}) return counting')
+            except Exception as err:
+                msg = f'! Error get_counting response_list = {response_list}'
+                print(msg)
+                self.logger.error.error(msg)
+
+
+    async def get_sysname(self, print_result):
         """
         Метод проверяет каждое устройство из device_list на доступность
         и устанавливает признак в self.device_list[i].enabled
         + заполняет name
         """
-        response = await self.send_command(self.GET_NAME)
+        response = await self.send_command(self.GET_NAME, print_result)
         if not (response is None):
             self.device.enabled = True
             self.device.name = response.result.strip().lstrip('name:').strip()
