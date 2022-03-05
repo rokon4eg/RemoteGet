@@ -22,11 +22,11 @@ def main():
     # TODO продумать как devices_for_work передавать во все зависимые методы которые выполняются ниже
 
     devices_get_sysname(devcom, devices_for_work, print_result=False)  # Get "sysname" from devices_for_work
-    devcom.devices.load_export_compact_from_files(date_='2022-03-04')  # Load "export compact" from files...
-    # devices_get_config(devcom, devices_for_work)  # Get "config"
-    # devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
-    devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active"
-    devices_get_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active"
+    # devcom.devices.load_export_compact_from_files(date_='2022-03-04')  # Load "export compact" from files...
+    devices_get_config(devcom, devices_for_work)  # Get "config"
+    devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
+    devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
+    """# ### devices_get_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active"""
     devcom.devices.parse_config()  # Parse config...
     # devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_free...
     # # devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_in_tu...
@@ -96,21 +96,21 @@ def devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=F
         if device.enabled:
             comrun1 = dc.CommandRunner_Get(device)
             devcom.append_coroutine(comrun1.get_ppp_active(print_result))
-            #
-            # comrun2 = dc.CommandRunner_Get(device)
-            # devcom.append_coroutine(comrun2.get_counting(print_result))
+
+            comrun2 = dc.CommandRunner_Get(device)
+            devcom.append_coroutine(comrun2.get_counting(print_result))
     devcom.run()
     devcom.devices.logger.root.info(f'Get "ip ppp active" and "counting" success.')
 
 
-def devices_get_counting(devcom, devices_for_work, print_result=False):
-    devcom.devices.logger.root.info(f'Get "counting" from {len(devices_for_work)} hosts...')
-    for device in devices_for_work:
-        if device.enabled:
-            comrun2 = dc.CommandRunner_Get(device)
-            devcom.append_coroutine(comrun2.get_counting(print_result))
-    devcom.run()
-    devcom.devices.logger.root.info(f'Get "counting" success.')
+# def devices_get_counting(devcom, devices_for_work, print_result=False):
+#     devcom.devices.logger.root.info(f'Get "counting" from {len(devices_for_work)} hosts...')
+#     for device in devices_for_work:
+#         if device.enabled:
+#             comrun2 = dc.CommandRunner_Get(device)
+#             devcom.append_coroutine(comrun2.get_counting(print_result))
+#     devcom.run()
+#     devcom.devices.logger.root.info(f'Get "counting" success.')
 
 
 def devices_get_sysname(devcom, devices_for_work, print_result):

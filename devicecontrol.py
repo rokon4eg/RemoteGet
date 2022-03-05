@@ -135,7 +135,7 @@ class Devices:
                 dev = Device(connect_param=config.copy(),
                              city=node['Город'],
                              name=node['NAME_DEVICE'],
-                             id=node['ID'])
+                             id=str(node['ID']))
                 self.device_list.append(dev)
                 # self.logger.root.setLevel(logging.INFO)
                 self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
@@ -160,6 +160,8 @@ class Devices:
                         self.logger.export_compact.info(f'device with ip:{dev.ip} load config from {filename}')
                     else:
                         self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
+                else:
+                    self.logger.export_compact.warning(f'Could not load config from "{filename}". File does not exist.')
         else:
             self.logger.error.error(f'! Dir "{dir_}" does not exist. Call method: "load_export_compact_from_files"')
         self.logger.root.info(f'Load "export compact" success.')
@@ -215,11 +217,12 @@ class Devices:
             file_name_new = file_name + f'({str(ind)})'
             file_summary = tools.get_file_name(file_name_new, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
         try:
-            pandas.read_json(json.dumps(summary)).to_excel(file_summary, index=0)
+            summary_json = json.dumps(summary)
+            summary_data_frame = pandas.read_json(summary_json)
+            summary_data_frame.to_excel(file_summary, index=0)
             # pandas.read_json(json.dumps(summary)).sort_values('City').to_excel(file_summary)
         except Exception as err:
-            msg = f'! Error save file {file_summary} with parse result. Call method: "save_parse_result2files"\n' \
-                  f'{err}'
+            msg = f'! Error save file summary {file_summary} with parse result: {err}'
             print(msg)
             self.logger.error.error(msg)
         self.logger.root.info(f'Save parse config success.')
