@@ -1,6 +1,7 @@
 import os, re, logging, asyncio, json, yaml
 
 from datetime import date, datetime
+import time
 from threading import Lock
 from typing import List, Coroutine
 
@@ -127,7 +128,7 @@ class Devices:
         """
         data = pandas.read_excel(filename)
         for node in data.iloc:
-            if str(node['run']).lower() != 'false':
+            if ('run' not in node) or (str(node['run']).lower() != 'false'):
                 config = self.config_example.copy()
                 config['host'] = node['IP_DEVICE']
                 config['auth_username'] = node['LOGIN']
@@ -146,6 +147,7 @@ class Devices:
         DONE Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
         """
         self.logger.root.info(f'Load "export compact" from files...')
+        print(time.strftime("%H:%M:%S"), 'Load "export compact" from files...')
         if not dir_:
             dir_ = self.dir_export_compact
         if date_:
@@ -165,36 +167,40 @@ class Devices:
         else:
             self.logger.error.error(f'! Dir "{dir_}" does not exist. Call method: "load_export_compact_from_files"')
         self.logger.root.info(f'Load "export compact" success.')
+        print(time.strftime("%H:%M:%S"), 'Load "export compact" success.')
 
-    def save_export_compact_to_files(self, dir=''):
+    def save_export_compact_to_files(self, dir_=''):
         """
         Метод сохраняет конфигурации каждого устройства в отдельный файл в выделенном каталоге dir
         """
         self.logger.root.info(f'Save "export compact" to files...')
-        if not dir:
-            dir = os.path.join(self.dir_export_compact, str(date.today()))
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        print(time.strftime("%H:%M:%S"), 'Save "export compact" to files...')
+        if not dir_:
+            dir_ = os.path.join(self.dir_export_compact, str(date.today()))
+        if not os.path.exists(dir_):
+            os.mkdir(dir_)
         for dev in self.device_list:
             if dev.export_compact:
-                filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_export_compact, dir=dir)
+                filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_export_compact, dir=dir_)
                 with open(filename, 'wt') as file:
                     file.write(dev.export_compact)
                 self.logger.export_compact.info(f'device with ip:{dev.ip} save config to {filename}')
             else:
                 self.logger.export_compact.warning(f'device with ip:{dev.ip} don''t have config')
         self.logger.root.info(f'Save "export compact" success.')
+        print(time.strftime("%H:%M:%S"), 'Save "export compact" success.')
 
-    def save_parse_result_to_files(self, dir=''):
+    def save_parse_result_to_files(self, dir_=''):
         """
         Метод сохраняет результат парсинга конфигураций каждого устройства в отдельный файл в выделенном каталоге dir
         + file_summary
         """
         self.logger.root.info(f'Save parse config to files...')
-        if not dir:
-            dir = os.path.join(self.dir_output_parse, str(date.today()))
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        print(time.strftime("%H:%M:%S"), 'Save parse config to files...')
+        if not dir_:
+            dir_ = os.path.join(self.dir_output_parse, str(date.today()))
+        if not os.path.exists(dir_):
+            os.mkdir(dir_)
         summary = []
         for dev in self.device_list:
             if not (dev.mikroconfig is None):
@@ -202,7 +208,7 @@ class Devices:
                 output_msg, text_for_output_in_file = general_param.get_output_info()
                 dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
                 if dev.result_parsing:
-                    filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_output_parse, dir=dir)
+                    filename = tools.get_file_name(dev.city + '_' + dev.name, suffix=self.dir_output_parse, dir=dir_)
                     with open(filename, 'wt') as file:
                         file.write(dev.result_parsing)
                     self.logger.output_parse.info(f'device with ip:{dev.ip} save result parse config to {filename}')
@@ -210,12 +216,12 @@ class Devices:
                 else:
                     self.logger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
         file_name = 'summary_' + str(date.today())
-        file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
+        file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir_, ext='xlsx')
         ind = 0
         while os.path.exists(file_summary):
             ind += 1
             file_name_new = file_name + f'({str(ind)})'
-            file_summary = tools.get_file_name(file_name_new, suffix=self.dir_output_parse, dir=dir, ext='xlsx')
+            file_summary = tools.get_file_name(file_name_new, suffix=self.dir_output_parse, dir=dir_, ext='xlsx')
         try:
             summary_json = json.dumps(summary)
             summary_data_frame = pandas.read_json(summary_json)
@@ -226,9 +232,11 @@ class Devices:
             print(msg)
             self.logger.error.error(msg)
         self.logger.root.info(f'Save parse config success.')
+        print(time.strftime("%H:%M:%S"), 'Save parse config success.')
 
     def parse_config(self):
         self.logger.root.info(f'Parse config...')
+        print(time.strftime("%H:%M:%S"), 'Parse config...')
         for dev in self.device_list:
             if dev.export_compact:
                 file_tu = tools.get_file_name(dev.city, suffix=self.dir_tu, dir=self.dir_tu)
@@ -241,9 +249,11 @@ class Devices:
                 # output_msg, text_for_output_in_file = general_param.get_output_info()
                 # dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
         self.logger.root.info(f'Parse config success.')
+        print(time.strftime("%H:%M:%S"), 'Parse config success.')
 
-    def save_icmp_result2files(self, type_ip_list):
-        self.logger.root.info(f'Save ICMP result to files...')
+    def save_icmp_result_to_files(self, type_ip_list):
+        self.logger.root.info(f'Save ICMP {type_ip_list} result to files...')
+        print(time.strftime("%H:%M:%S"), f'Save ICMP {type_ip_list} result to files...')
         if not os.path.exists(self.dir_output_icmp_ip_free):
             os.mkdir(self.dir_output_icmp_ip_free)
         if not os.path.exists(self.dir_output_icmp_ip_in_tu):
@@ -269,12 +279,14 @@ class Devices:
                     data = new_data
                 try:
                     data.to_excel(file_icmp)
+                    print(time.strftime("%H:%M:%S"), f'save file {file_icmp}')
                 except Exception as err:
                     msg = f'! Error save file {file_icmp} with icmp result. Call method: "save_icmp_result2files"\n' \
                           f'{err}'
                     print(msg)
                     self.logger.error.error(msg)
         self.logger.root.info(f'Save ICMP result success.')
+        print(time.strftime("%H:%M:%S"), f'Save ICMP {type_ip_list} result success.')
 
 
 class Device:
@@ -349,18 +361,18 @@ class DeviceManagement:
         await asyncio.sleep(SLEEP)
         try:
             id = self.device.id
-            msg = f'[{id}]: Connecting to {self.session.host} via {self.session.transport_name}:{self.session.port}...'
-            print(msg)
-            self.device.logger.terminal_output.info(msg)
+            # msg = f'[{id}]: Connecting to {self.session.host} via {self.session.transport_name}:{self.session.port}...'
+            # print(msg)
+            # self.device.logger.terminal_output.info(msg)
             await self.session.open()
-            if self.session.isalive():
-                msg = f'[{id}]: Connected to {self.device.city}({self.session.host})'
-                      # f'via {self.session.transport_name}:{self.session.port}'
-                print(msg)
-                self.device.logger.terminal_output.info(msg)
+            # if self.session.isalive():
+            #     msg = f'[{id}]: Connected to {self.device.city}({self.session.host})'
+            #           # f'via {self.session.transport_name}:{self.session.port}'
+            #     print(msg)
+            #     self.device.logger.terminal_output.info(msg)
         except Exception as err:
             msg = f'[{id}]: ! Open session error {self.device.city} {self.session.host}- {err}'
-                  # f'via {self.session.transport_name}:{self.session.port}: {err}'
+            # f'via {self.session.transport_name}:{self.session.port}: {err}'
             print(msg)
             self.device.logger.terminal_output.warning(msg)
             self.device.logger.error.error(msg)
@@ -370,19 +382,19 @@ class DeviceManagement:
         try:
             id = self.device.id
             await self.session.close()
-            msg = f'[{id}]: Host {self.session.host} disconnected'
-                  # f' via {self.session.transport_name}:{self.session.port}'
-            print(msg)
-            self.device.logger.terminal_output.info(msg)
+            # msg = f'[{id}]: Host {self.session.host} disconnected'
+            #       # f' via {self.session.transport_name}:{self.session.port}'
+            # print(msg)
+            # self.device.logger.terminal_output.info(msg)
         except ScrapliException or OSError as err:
             msg = f'[{id}]: ! Close error from {self.session.host}- {err}'
-                  # f' via {self.session.transport_name}:{self.session.port}'
+            # f' via {self.session.transport_name}:{self.session.port}'
             print(msg)
             self.device.logger.terminal_output.warning(msg)
             self.device.logger.error.error(msg)
         return None
 
-    async def send_command(self, command, print_result=True, is_need_open=True):
+    async def send_command(self, command, print_result=True, is_need_open=True, timeout=None):
         if is_need_open:
             self.session = await self.open_session()
         response = None
@@ -391,27 +403,36 @@ class DeviceManagement:
                 id = self.device.id
                 pr = await self.session.get_prompt()
                 await asyncio.sleep(SLEEP)
-                response = await self.session.send_command(command)
-                msg = f'{"-" * 50}\n[{id}]: Result from {self.session.host}:'
-                      # f' via {self.session.transport_name}:{self.session.port}'
-                print(msg)
-                self.device.logger.terminal_output.info(msg)
-                print(pr, response.channel_input)
-                self.device.logger.terminal_output.info(pr + ' ' + response.channel_input)
-                if print_result:
-                    print(response.result)
-                    self.device.logger.terminal_output.info(str(response.result))
+                if timeout:
+                    response = await self.session.send_command(command, timeout_ops=timeout)
                 else:
+                    response = await self.session.send_command(command)
+                # f' via {self.session.transport_name}:{self.session.port}'
+                if print_result:
+                    msg = f'{"-" * 50}\n[{id}]: Result from {self.session.host}:'
+                    print(msg)
+                    self.device.logger.terminal_output.info(msg)
+                    print(pr, response.channel_input)
+                    self.device.logger.terminal_output.info(pr + ' ' + response.channel_input)
+
+                    msg = str(response.result).encode().decode('ascii', 'ignore')
+                    print(msg)
+                    self.device.logger.terminal_output.info(msg)
+
+                    msg = 'elapsed time = ' + str(response.elapsed_time)
+                    print(msg)
+                    self.device.logger.terminal_output.info(msg)
+                # else:
                     # msg = f'--- No output. Variable "print_result" set is {print_result}'
                     # print(msg)
-                    self.device.logger.terminal_output.info(msg)
-                msg = 'elapsed time = ' + str(response.elapsed_time)
-                print(msg)
-                self.device.logger.terminal_output.info(msg)
-            except ScrapliException as err:
-                msg = f'[{id}]: ! Send command {command} error on {self.session.host}- {err}'
-                      # f' via {self.session.transport_name}:{self.session.port} Call method: "send_command"\n' \
-                      # f'{err}'
+                    # self.device.logger.terminal_output.info(msg)
+                    # msg = 'elapsed time = ' + str(response.elapsed_time)
+                    # print(msg)
+                    # self.device.logger.terminal_output.info(msg)
+            except Exception as err:
+                msg = f'[{id}]: !Error send command "{command}" on {self.device.city} {self.session.host}- {err}'
+                # f' via {self.session.transport_name}:{self.session.port} Call method: "send_command"\n' \
+                # f'{err}'
                 print(msg)
                 self.device.logger.error.error(msg)
             finally:
@@ -444,6 +465,7 @@ class CommandRunner_Get(DeviceManagement):
     GET_IP = '/ip address print'
     SEND_PING = '/ping %s count=5'
     GET_CONFIG = '/export compact'
+    TIMEOUT_GET_CONFIG = 120
     GET_PPP_ACTIVE = '/ppp active pr detail'
     GET_NAME = '/system identity print'
 
@@ -511,19 +533,30 @@ class CommandRunner_Get(DeviceManagement):
 
     async def get_config(self, print_result=False, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
-            response = await self.send_command(self.GET_CONFIG, print_result=print_result)
-            if not (response is None):
+            now = time.time()
+            response = await self.send_command(self.GET_CONFIG,
+                                               print_result=print_result,
+                                               timeout=self.TIMEOUT_GET_CONFIG)
+            if response is not None:
                 self.device.export_compact = response.result
-                self.logger.device_com.info(f'Host with IP {self.device.ip} ({self.device.name}) return config')
+                msg = f'Host with IP {self.device.ip} {self.device.city} ({self.device.name}) ' \
+                      f'return config. ' \
+                      f'Elapsed {"%.3s" % (time.time() - now)} seconds.'
+
+                self.logger.device_com.info(msg)
+                print(time.strftime("%H:%M:%S"), msg)
             else:
-                self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name})'
-                                               f' don`t return config')
+                msg = f'Error from host with IP {self.device.ip} {self.device.city} ({self.device.name}) ' \
+                      f'don`t return config. ' \
+                      f'Elapsed {"%.3s" % (time.time() - now)} seconds.'
+                self.logger.device_com.warning(msg)
+                print(time.strftime("%H:%M:%S"), msg)
 
     async def get_ppp_active(self, print_result=False, check_enabled=False):
         regx = r'address=((?:\d+\.){3}\d+)'
         if (not check_enabled) or self.device.enabled:
             response = await self.send_command(self.GET_PPP_ACTIVE, print_result=print_result)
-            if not (response is None):
+            if response is not None:
                 res = re.findall(regx, response.result)
                 self.device.ip_ppp_active = set(res)
                 self.logger.device_com.info(f'Host with IP {self.device.ip} ({self.device.name})'
@@ -549,7 +582,6 @@ class CommandRunner_Get(DeviceManagement):
                 msg = f'! Error get_counting response_list = {response_list}'
                 print(msg)
                 self.logger.error.error(msg)
-
 
     async def get_sysname(self, print_result):
         """
@@ -608,17 +640,20 @@ class CommandRunner_Put(DeviceManagement):
 
     async def set_status_interfaces(self, action, print_result):
         if self.device.mikroconfig:
-            bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
-            await self.set_status_interfaces_by_name(action, 'bridge', bridges, print_result)  # set_status bridge empty and single
-
-            eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
-            await self.set_status_interfaces_by_name(action, 'eoip', eoip_single, print_result)  # set_status eoip single
-
-            vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
-            await self.set_status_interfaces_by_name(action, 'vlan', vlan_single, print_result)  # set_status vlan single
-
-            eoips = self.device.mikroconfig.eoip_free
-            await self.set_status_interfaces_by_name(action, 'eoip', eoips, print_result)  # set_status eoip free
+            # bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
+            # await self.set_status_interfaces_by_name(action, 'bridge', bridges,
+            #                                          print_result)  # set_status bridge empty and single
+            #
+            # eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
+            # await self.set_status_interfaces_by_name(action, 'eoip', eoip_single,
+            #                                          print_result)  # set_status eoip single
+            #
+            # vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
+            # await self.set_status_interfaces_by_name(action, 'vlan', vlan_single,
+            #                                          print_result)  # set_status vlan single
+            #
+            # eoips = self.device.mikroconfig.eoip_free
+            # await self.set_status_interfaces_by_name(action, 'eoip', eoips, print_result)  # set_status eoip free
 
             vlans = self.device.mikroconfig.vlans_free
             await self.set_status_interfaces_by_name(action, 'vlan', vlans, print_result)  # set_status vlan free
