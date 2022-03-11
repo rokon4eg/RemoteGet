@@ -32,10 +32,13 @@ class MikrotikConfig:
         self.br_empty = set()  # ---br_empty
         self.br_single = set()  # ---br_single
         self.int_single_dict = dict()  # --intsingle = {int: type_int}
-        self.set_bridges()  # br_empty, br_single, int_single_dict
+        self.get_bridges()  # br_empty, br_single, int_single_dict
         self.vlans_free = self.get_vlans_free()  # --vlans_free
         self.eoip_free = self.get_eoip_free()  # --eoip_free
-        self.ip_free, self.ip_in_tu = self.get_ip()  # --ip_free; ip_in_tu - IP которые есть в ТУ, для формирования ЗМС
+        # --ip_free; ip_in_tu - IP которые есть в ТУ, для формирования ЗМС
+        # ip_ppp_free, ppp у которых remote-ip не используется ни в одном eoip
+        self.ip_free, self.ip_in_tu, self.ip_ppp_free = self.get_ip()
+
         self.icmp_false = set()  # --icmp_false
         self.icmp_true = set()  # --icmp_true
         self.icmp_ip_in_tu_true = set()  # icmp ip_in_tu true
@@ -96,15 +99,17 @@ class MikrotikConfig:
         """
         Сравнить IP адреса из PPP secrets и remote address из EOIP с адресами в ТУ (ip_from_address_plan.txt)
         Исключить активные PPP (ppp_active_from_cm.txt)
+        ip_ppp_free - ppp у которых remote-ip не используется ни в одном eoip
         """
         ip_free_ = set()
         ip_in_tu_ = set()
-        ip_ppp = set(parse_section(regex_section.ppp_secret, self.config))
-        ip_eoip = set(parse_section(regex_section.interface_eoip, self.config, 3))
-        ip_all = (ip_ppp | ip_eoip)
+        _ip_ppp = set(parse_section(regex_section.ppp_secret, self.config))
+        _ip_eoip = set(parse_section(regex_section.interface_eoip, self.config, 3))
+        ip_ppp_free_ = _ip_ppp - _ip_eoip - self.ip_active_ppp
+        ip_all = (_ip_ppp | _ip_eoip)
         ip_free_.update(ip_all - self.ip_from_tu - self.ip_active_ppp)
         ip_in_tu_.update(ip_all - ip_free_)
-        return ip_free_, ip_in_tu_
+        return ip_free_, ip_in_tu_, ip_ppp_free_
 
     def get_eoip_free(self):
         """
@@ -115,7 +120,7 @@ class MikrotikConfig:
         res.update(self.exclude_int_in_bonding(eoip_int, self.bonding))
         return res
 
-    def set_bridges(self):
+    def get_bridges(self):
         """
         Исключить бриджы которые участвуют в "ip addresses"
         Найти бриджы без портов - br_empty

@@ -203,7 +203,7 @@ class Devices:
             os.mkdir(dir_)
         summary = []
         for dev in self.device_list:
-            if not (dev.mikroconfig is None):
+            if dev.mikroconfig is not None:
                 general_param = GeneralParam(dev.mikroconfig)
                 output_msg, text_for_output_in_file = general_param.get_output_info()
                 dev.result_parsing = output_msg % (dev.name, dev.ip, dev.city) + text_for_output_in_file
@@ -215,6 +215,8 @@ class Devices:
                     summary.append(dev.get_summary_parse_result())
                 else:
                     self.logger.output_parse.warning(f'device with ip:{dev.ip} don''t have result parse')
+            else:
+                summary.append(dev.get_summary_parse_result())
         file_name = 'summary_' + str(date.today())
         file_summary = tools.get_file_name(file_name, suffix=self.dir_output_parse, dir=dir_, ext='xlsx')
         ind = 0
@@ -297,6 +299,7 @@ class Device:
     #     return super().__new__(cls)
 
     def __init__(self, connect_param, city, name, id):
+        self.connect_error = ''
         self.connect_param = connect_param
         self.city = city
         self.name = name
@@ -318,26 +321,28 @@ class Device:
 
     def get_summary_parse_result(self):
         res = dict()
+        res['ID'] = self.id
+        res['City'] = self.city
+        res['sys name'] = self.name
+        res['MikroTik IP'] = self.ip
+        res['Сonnected'] = self.connect_error
         if self.mikroconfig is not None:
-            res['ID'] = self.id
-            res['City'] = self.city
-            res['sys name'] = self.name
-            res['MikroTik IP'] = self.ip
-            res['Bridge empty'] = len(self.mikroconfig.br_empty)
-            res['Bridge single'] = len(self.mikroconfig.br_single)
-            res['int single'] = len(self.mikroconfig.int_single_dict)
-            res['vlans free'] = len(self.mikroconfig.vlans_free)
-            res['EOIP free'] = len(self.mikroconfig.eoip_free)
-            res['IP free'] = len(self.mikroconfig.ip_free)
-            res['False ICMP IP free'] = len(self.mikroconfig.icmp_false)
-            res['True ICMP IP free'] = len(self.mikroconfig.icmp_true)
-            res['IP in TU'] = len(self.mikroconfig.ip_in_tu)
-            res['False ICMP IP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_false)
-            res['True ICMP IP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_true)
-            res['int count'] = self.count_interface
-            res['int active'] = self.count_interface_active
-            res['int disabled'] = self.count_interface_disabled
-            res['PPP active'] = self.count_ppp_active
+            res['Bridge\nempty'] = len(self.mikroconfig.br_empty)
+            res['Bridge\nsingle'] = len(self.mikroconfig.br_single)
+            res['int\nsingle'] = len(self.mikroconfig.int_single_dict)
+            res['vlans\nfree'] = len(self.mikroconfig.vlans_free)
+            res['EOIP\nfree'] = len(self.mikroconfig.eoip_free)
+            res['PPP\nfree'] = len(self.mikroconfig.ip_ppp_free)
+            res['IP\nfree'] = len(self.mikroconfig.ip_free)
+            res['False ICMP\nIP free'] = len(self.mikroconfig.icmp_false)
+            res['True ICMP\nIP free'] = len(self.mikroconfig.icmp_true)
+            res['IP\nin TU'] = len(self.mikroconfig.ip_in_tu)
+            res['False ICMP\nIP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_false)
+            res['True ICMP\nIP in TU'] = len(self.mikroconfig.icmp_ip_in_tu_true)
+            res['int\ncount'] = self.count_interface
+            res['int\nactive'] = self.count_interface_active
+            res['int\ndisabled'] = self.count_interface_disabled
+            res['PPP\nactive'] = self.count_ppp_active
         return res
 
 
@@ -350,7 +355,7 @@ class DeviceManagement:
         self.device = device
         self.session = None  # self.open_session()
 
-    async def open_session(self):
+    async def open_session(self, get_error=False):
         try:
             if self.session is None:
                 self.session = AsyncScrapli(**self.device.connect_param)
@@ -374,6 +379,8 @@ class DeviceManagement:
             msg = f'[{id}]: ! Open session error {self.device.city} {self.session.host}- {err}'
             # f'via {self.session.transport_name}:{self.session.port}: {err}'
             print(msg)
+            if get_error:
+                self.device.connect_error = str(err)
             self.device.logger.terminal_output.warning(msg)
             self.device.logger.error.error(msg)
         return self.session
@@ -394,9 +401,9 @@ class DeviceManagement:
             self.device.logger.error.error(msg)
         return None
 
-    async def send_command(self, command, print_result=True, is_need_open=True, timeout=None):
+    async def send_command(self, command, print_result=True, is_need_open=True, timeout=None, get_error=False):
         if is_need_open:
-            self.session = await self.open_session()
+            self.session = await self.open_session(get_error=True)
         response = None
         if self.session.isalive():
             try:
@@ -435,6 +442,8 @@ class DeviceManagement:
                 # f'{err}'
                 print(msg)
                 self.device.logger.error.error(msg)
+                if get_error:
+                    response = err
             finally:
                 if is_need_open:
                     await self.close_session()
@@ -589,8 +598,8 @@ class CommandRunner_Get(DeviceManagement):
         и устанавливает признак в self.device_list[i].enabled
         + заполняет name
         """
-        response = await self.send_command(self.GET_NAME, print_result)
-        if not (response is None):
+        response = await self.send_command(self.GET_NAME, print_result, get_error=True)
+        if response is not None:
             self.device.enabled = True
             self.device.name = response.result.strip().lstrip('name:').strip()
             self.logger.device_com.info(f'Host with IP {self.device.ip} return sysname - {self.device.name}')
@@ -631,6 +640,14 @@ class CommandRunner_Put(DeviceManagement):
     PUT_ENABLE_INTERFACE_BY_NAME = '/interface {0} enable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
     PRINT_INTERFACE_BY_NAME = '/interface {0} print where name="{1}"'  # {0} = [bridge|vlan|eoip]
 
+    PRINT_PPP_SECRET = '/ppp secret print where remote-address ="{1}"'
+    PUT_DISABLE_PPP_SECRET = '/ppp secret disable [find where remote-address ="{1}"]'
+    PUT_ENABLE_PPP_SECRET = '/ppp secret enable [find where remote-address ="{1}"]'
+
+    PRINT_BRIDGE_PORT = '/interface bridge port print where {0} ="{1}"'
+    PUT_DISABLE_BRIDGE_PORT = '/interface bridge port disable [find where {0} ="{1}"]'
+    PUT_ENABLE_BRIDGE_PORT = '/interface bridge port enable [find where {0} ="{1}"]'
+
     PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={0}]'
     PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={0}]'
 
@@ -640,23 +657,30 @@ class CommandRunner_Put(DeviceManagement):
 
     async def set_status_interfaces(self, action, print_result):
         if self.device.mikroconfig:
-            # bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
-            # await self.set_status_interfaces_by_name(action, 'bridge', bridges,
-            #                                          print_result)  # set_status bridge empty and single
-            #
-            # eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
-            # await self.set_status_interfaces_by_name(action, 'eoip', eoip_single,
-            #                                          print_result)  # set_status eoip single
-            #
-            # vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
-            # await self.set_status_interfaces_by_name(action, 'vlan', vlan_single,
-            #                                          print_result)  # set_status vlan single
-            #
-            # eoips = self.device.mikroconfig.eoip_free
-            # await self.set_status_interfaces_by_name(action, 'eoip', eoips, print_result)  # set_status eoip free
+            bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
+            await self.set_status_interfaces_by_name(action, 'bridge', bridges,
+                                                     print_result)  # set_status bridge empty and single
+
+            eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
+            await self.set_status_interfaces_by_name(action, 'eoip', eoip_single,
+                                                     print_result)  # set_status eoip single
+
+            vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
+            await self.set_status_interfaces_by_name(action, 'vlan', vlan_single,
+                                                     print_result)  # set_status vlan single
+
+            eoips = self.device.mikroconfig.eoip_free
+            await self.set_status_interfaces_by_name(action, 'eoip', eoips, print_result)  # set_status eoip free
 
             vlans = self.device.mikroconfig.vlans_free
             await self.set_status_interfaces_by_name(action, 'vlan', vlans, print_result)  # set_status vlan free
+
+            bridge_ports = self.device.mikroconfig.int_single_dict.keys()
+            await self.set_status_bridge_port_by_name(action, 'interface', bridge_ports,
+                                                      print_result)  # set_status bridge ports
+
+            ip_ppp = self.device.mikroconfig.ip_ppp_free
+            await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_ppp, print_result)  # set_status ip_ppp free
 
     async def set_status_interfaces_by_name(self, action, type_int, int_list, print_result=True, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
@@ -670,29 +694,31 @@ class CommandRunner_Put(DeviceManagement):
             elif action == 'print':
                 set_status_command = self.PRINT_INTERFACE_BY_NAME
             if set_status_command:
-                count = 0
-                try:
-                    await self.open_session()
-                    if self.session.isalive():
-                        for int in int_list:
-                            count += 1
-                            msg = f'{count}/{len(int_list)} {action}_interfaces_by_name in {self.device.city}: ' \
-                                  f'{self.device.ip}({self.device.name}) ' \
-                                  f'{set_status_command.format(type_int, int)}'
-                            self.logger.command_put.info(msg)
-                            response = await self.send_command(set_status_command.format(type_int, int),
-                                                               print_result=print_result,
-                                                               is_need_open=False)
-                            # if print_result:
-                            #     self.logger.command_put.info(response)
-                finally:
-                    msg = f'Сomplete {action}_interfaces_by_name in {self.device.city}: ' \
-                          f'{self.device.ip}({self.device.name}) for {len(int_list)} interfaces.'
+                await self.send_command_run(action, type_int, int_list, set_status_command, print_result)
+        # await asyncio.sleep(SLEEP)
+
+    async def send_command_run(self, action, type_int, int_list, set_status_command, print_result):
+        try:
+            await self.open_session()
+            count = 0
+            if self.session.isalive():
+                for int in int_list:
+                    count += 1
+                    msg = f'{count}/{len(int_list)} {action} {type_int} in {self.device.city}: ' \
+                          f'{self.device.ip}({self.device.name}) ' \
+                          f'{set_status_command.format(type_int, int)}'
                     print(msg)
                     self.logger.command_put.info(msg)
-                    await self.close_session()
-                    # DONE отправка команды на ЦМ - set_status_command
-        # await asyncio.sleep(SLEEP)
+                    await self.send_command(set_status_command.format(type_int, int),
+                                            print_result=print_result,
+                                            is_need_open=False)
+        finally:
+            msg = f'Сomplete {action} {type_int} in {self.device.city}: ' \
+                  f'{self.device.ip}({self.device.name}) for {len(int_list)} interfaces.'
+            print(msg)
+            self.logger.command_put.info(msg)
+            await self.close_session()
+            # DONE отправка команды на ЦМ - set_status_command
 
     async def disable_eoip_by_remote_ip(self, ip_list):
         if type(ip_list) is set:
@@ -707,6 +733,104 @@ class CommandRunner_Put(DeviceManagement):
         for ip in ip_list:
             self.logger.command_put.info(f'enable_eoip_by_remote_ip: - {ip}')
         await asyncio.sleep(SLEEP)
+
+    async def set_status_ppp_secret_by_ip(self, action, type_int, ip_ppp, print_result=True, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            if type(ip_ppp) is set:
+                ip_ppp = list(ip_ppp)
+            set_status_command = ''
+            if action == 'disable':
+                set_status_command = self.PUT_DISABLE_PPP_SECRET
+            elif action == 'enable':
+                set_status_command = self.PUT_ENABLE_PPP_SECRET
+            elif action == 'print':
+                set_status_command = self.PRINT_PPP_SECRET
+            if set_status_command:
+                await self.send_command_run(action, type_int, ip_ppp, set_status_command, print_result)
+
+    async def set_status_bridge_port_by_name(self, action, type_int, br_port_list,
+                                             print_result=True, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            if type(br_port_list) is set:
+                br_port_list = list(br_port_list)
+            set_status_command = ''
+            if action == 'disable':
+                set_status_command = self.PUT_DISABLE_BRIDGE_PORT
+            elif action == 'enable':
+                set_status_command = self.PUT_ENABLE_BRIDGE_PORT
+            elif action == 'print':
+                set_status_command = self.PRINT_BRIDGE_PORT
+            if set_status_command:
+                await self.send_command_run(action, type_int, br_port_list, set_status_command, print_result)
+
+
+class CommandRunner_Remove(DeviceManagement):
+    """
+    Класс реализует выполнение команд удаления на одном устройстве
+    """
+    GET_COUNT_DISABLED_PPP = '/ppp secret print count-only where disabled'
+    GET_COUNT_DISABLED_EOIP = '/interface eoip print count-only where disabled'
+    GET_COUNT_DISABLED_VLAN = '/interface vlan print count-only where disabled'
+    GET_COUNT_DISABLED_BRIDGE_PORT = '/interface bridge port print count-only where disabled'
+    GET_COUNT_DISABLED_BRIDGE = '/interface bridge print  count-only where disabled'
+
+    REMOVE_DISABLED_PPP = '/ppp secret remove [find where disabled ]'
+    REMOVE_DISABLED_EOIP = '/interface eoip remove [find where disabled]'
+    REMOVE_DISABLED_VLAN = '/interface vlan remove [find where disabled]'
+    REMOVE_DISABLED_BRIDGE_PORT = '/interface bridge port remove [find where disabled]'
+    REMOVE_DISABLED_BRIDGE = '/interface bridge remove [find where disabled]'
+
+    def __init__(self, device):
+        super().__init__(device)
+        self.logger = Logger()
+
+    async def get_disabled_counting(self, print_result=False, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            response_list = await self.send_commands([self.GET_COUNT_DISABLED_PPP,
+                                                      self.GET_COUNT_DISABLED_EOIP,
+                                                      self.GET_COUNT_DISABLED_VLAN,
+                                                      self.GET_COUNT_DISABLED_BRIDGE_PORT,
+                                                      self.GET_COUNT_DISABLED_BRIDGE
+                                                      ], print_result=False)
+            try:
+                msg = f"DISABLED_PPP = {response_list[0].result}\n" \
+                      f"DISABLED_EOIP = {response_list[1].result}\n" \
+                      f"DISABLED_VLAN = {response_list[2].result}\n" \
+                      f"DISABLED_BRIDGE_PORT = {response_list[3].result}\n" \
+                      f"DISABLED_BRIDGE = {response_list[4].result}\n" \
+                      f"SUM = {sum(int(res.result) for res in response_list)}"
+                if print_result:
+                    print(time.strftime("%H:%M:%S"), f'Return disabled counting from '
+                                                     f'{self.device.city} - {self.device.ip} - '
+                                                     f'({self.device.name}):', msg, sep='\n')
+                self.logger.device_com.info(f'return disabled counting from {self.device.ip} ({self.device.name}):'
+                                            f'\n{msg}')
+            except Exception as err:
+                msg = f'! Error get_disabled_counting = {response_list}'
+                print(msg)
+                self.logger.error.error(msg)
+
+    async def remove_disabled(self, print_result=False, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            response_list = await self.send_commands([self.REMOVE_DISABLED_PPP,
+                                                      self.REMOVE_DISABLED_EOIP,
+                                                      self.REMOVE_DISABLED_VLAN,
+                                                      self.REMOVE_DISABLED_BRIDGE_PORT,
+                                                      self.REMOVE_DISABLED_BRIDGE
+                                                      ], print_result=print_result)
+            try:
+                # msg = f"DISABLED_PPP = {response_list[0].result}\n" \
+                #       f"DISABLED_EOIP = {response_list[1].result}\n" \
+                #       f"DISABLED_VLAN = {response_list[2].result}\n" \
+                #       f"DISABLED_BRIDGE_PORT = {response_list[3].result}\n" \
+                #       f"DISABLED_BRIDGE = {response_list[4].result}\n"
+                # if print_result:
+                print(f'remove disabled from {self.device.ip} ({self.device.name}:')
+                self.logger.device_com.info(f'remove disabled from {self.device.ip} ({self.device.name})')
+            except Exception as err:
+                msg = f'! Error remove_disabled = {response_list}'
+                print(msg)
+                self.logger.error.error(msg)
 
 
 class DevicesCommander:

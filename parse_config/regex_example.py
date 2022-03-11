@@ -44,14 +44,14 @@ regex_section = Regex_sections._make([
 regExFindIP = r'\d+\.\d+\.\d+\.\d+'
 
 
-def parse_section(section, config, reg_id=1):
+def parse_section(regex_section: Regex_sections, config, reg_id=1):
     """
+    :param regex_section:
     :param reg_id: id регулярки из списка в regex_section, с помощью которой парсить секцию
     """
-    # pass
     config = re.sub(regex_flash, '', config)  # удаление переносов из конфигурационного файла
-    section_config = '\n'.join(re.findall(section[0], config))  # выбор всей секции из конфигурационного файла
-    res = re.findall(section[reg_id], section_config)  # выбор нужных значений в зависимости от reg_id
+    section_config = '\n'.join(re.findall(regex_section[0], config))  # выбор всей секции из конфигурационного файла
+    res = re.findall(regex_section[reg_id], section_config)  # выбор нужных значений в зависимости от reg_id
     return res
 
 
