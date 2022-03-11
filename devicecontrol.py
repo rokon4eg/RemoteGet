@@ -6,6 +6,7 @@ from threading import Lock
 from typing import List, Coroutine
 
 import pandas
+from numpy import where
 from scrapli.exceptions import ScrapliException
 from scrapli import AsyncScrapli
 
@@ -333,6 +334,7 @@ class Device:
             res['vlans\nfree'] = len(self.mikroconfig.vlans_free)
             res['EOIP\nfree'] = len(self.mikroconfig.eoip_free)
             res['PPP\nfree'] = len(self.mikroconfig.ip_ppp_free)
+            # res['Vlans\nunknow'] = len(self.mikroconfig.int_from_vlans_unknow)
             res['IP\nfree'] = len(self.mikroconfig.ip_free)
             res['False ICMP\nIP free'] = len(self.mikroconfig.icmp_false)
             res['True ICMP\nIP free'] = len(self.mikroconfig.icmp_true)
@@ -636,9 +638,9 @@ class CommandRunner_Put(DeviceManagement):
     """
     Класс реализует выполнение команд записи на одном устройстве
     """
-    PUT_DISABLE_INTERFACE_BY_NAME = '/interface {0} disable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
-    PUT_ENABLE_INTERFACE_BY_NAME = '/interface {0} enable [find where name="{1}"]'  # {0} = [bridge|vlan|eoip]
-    PRINT_INTERFACE_BY_NAME = '/interface {0} print where name="{1}"'  # {0} = [bridge|vlan|eoip]
+    PUT_DISABLE_INTERFACE_BY_NAME = '/interface {0} disable [find where {2}="{1}"]'  # {0} = [bridge|vlan|eoip]
+    PUT_ENABLE_INTERFACE_BY_NAME = '/interface {0} enable [find where {2}="{1}"]'  # {0} = [bridge|vlan|eoip]
+    PRINT_INTERFACE_BY_NAME = '/interface {0} print where {2}="{1}"'  # {0} = [bridge|vlan|eoip]
 
     PRINT_PPP_SECRET = '/ppp secret print where remote-address ="{1}"'
     PUT_DISABLE_PPP_SECRET = '/ppp secret disable [find where remote-address ="{1}"]'
@@ -659,31 +661,41 @@ class CommandRunner_Put(DeviceManagement):
         if self.device.mikroconfig:
             bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
             await self.set_status_interfaces_by_name(action, 'bridge', bridges,
-                                                     print_result)  # set_status bridge empty and single
+                                                     print_result=print_result)  # set_status bridge empty and single
 
             eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
             await self.set_status_interfaces_by_name(action, 'eoip', eoip_single,
-                                                     print_result)  # set_status eoip single
+                                                     print_result=print_result)  # set_status eoip single
 
             vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
             await self.set_status_interfaces_by_name(action, 'vlan', vlan_single,
-                                                     print_result)  # set_status vlan single
+                                                     print_result=print_result)  # set_status vlan single
 
             eoips = self.device.mikroconfig.eoip_free
-            await self.set_status_interfaces_by_name(action, 'eoip', eoips, print_result)  # set_status eoip free
+            await self.set_status_interfaces_by_name(action, 'eoip', eoips,
+                                                     print_result=print_result)  # set_status eoip free
 
             vlans = self.device.mikroconfig.vlans_free
-            await self.set_status_interfaces_by_name(action, 'vlan', vlans, print_result)  # set_status vlan free
+            await self.set_status_interfaces_by_name(action, 'vlan', vlans,
+                                                     print_result=print_result)  # set_status vlan free
 
             bridge_ports = self.device.mikroconfig.int_single_dict.keys()
             await self.set_status_bridge_port_by_name(action, 'interface', bridge_ports,
-                                                      print_result)  # set_status bridge ports
+                                                      print_result=print_result)  # set_status bridge ports
+
+            # """int_from_vlans_unknow = self.device.mikroconfig.int_from_vlans_unknow
+            # await self.set_status_interfaces_by_name(action, 'vlan', int_from_vlans_unknow, where_by='interface',
+            #                                        print_result=print_result)  # set_status int_from_vlans_unknow"""
 
             ip_ppp = self.device.mikroconfig.ip_ppp_free
-            await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_ppp, print_result)  # set_status ip_ppp free
+            await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_ppp,
+                                                   print_result=print_result)  # set_status ip_ppp free
 
-    async def set_status_interfaces_by_name(self, action, type_int, int_list, print_result=True, check_enabled=False):
+    async def set_status_interfaces_by_name(self, action, type_int, int_list, where_by=None,
+                                            print_result=True, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
+            if not where_by:
+                where_by = 'name'
             if type(int_list) is set:
                 int_list = list(int_list)
             set_status_command = ''
@@ -694,10 +706,10 @@ class CommandRunner_Put(DeviceManagement):
             elif action == 'print':
                 set_status_command = self.PRINT_INTERFACE_BY_NAME
             if set_status_command:
-                await self.send_command_run(action, type_int, int_list, set_status_command, print_result)
+                await self.send_command_run(action, type_int, int_list, where_by, set_status_command, print_result)
         # await asyncio.sleep(SLEEP)
 
-    async def send_command_run(self, action, type_int, int_list, set_status_command, print_result):
+    async def send_command_run(self, action, type_int, int_list, where_by, set_status_command, print_result):
         try:
             await self.open_session()
             count = 0
@@ -706,10 +718,10 @@ class CommandRunner_Put(DeviceManagement):
                     count += 1
                     msg = f'{count}/{len(int_list)} {action} {type_int} in {self.device.city}: ' \
                           f'{self.device.ip}({self.device.name}) ' \
-                          f'{set_status_command.format(type_int, int)}'
+                          f'{set_status_command.format(type_int, int, where_by)}'
                     print(msg)
                     self.logger.command_put.info(msg)
-                    await self.send_command(set_status_command.format(type_int, int),
+                    await self.send_command(set_status_command.format(type_int, int, where_by),
                                             print_result=print_result,
                                             is_need_open=False)
         finally:

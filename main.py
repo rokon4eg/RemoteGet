@@ -7,7 +7,7 @@ import tools
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list_for_run.xlsx'
-PUT_REMOTE_CM_LIST = 'cm_list_put_2022-03-11.xlsx'
+PUT_REMOTE_CM_LIST = 'cm_list_put_2022-03-14.xlsx'
 SLICE = 50  # максимальное кол-во ip адресов для проверки в одном потоке
 
 
@@ -20,19 +20,19 @@ def main():
 
     devcom = dc.DevicesCommander(devices)
 
-    # devices_for_work = devcom.devices.device_list[1:2]
-    devices_for_work = devcom.devices.device_list
+    devices_for_work = devcom.devices.device_list[1:2]
+    # devices_for_work = devcom.devices.device_list
     # TODO продумать как devices_for_work передавать во все зависимые методы которые выполняются ниже
 
     devices_get_sysname(devcom, devices_for_work, print_result=False)  # Get "sysname" from devices_for_work
-    devcom.devices.load_export_compact_from_files(date_='2022-03-11')  # Load "export compact" from files...
-    # devices_get_config(devcom, devices_for_work)  # Get "config"
+    # devcom.devices.load_export_compact_from_files(date_='2022-03-11')  # Load "export compact" from files...
+    devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
     # devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
     # devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
     devcom.devices.parse_config()  # Parse config...
     # devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_free and ip_in_tu...
     # """# devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_in_tu..."""
-    # devcom.devices.save_parse_result_to_files()  # Save parse config to files...
+    devcom.devices.save_parse_result_to_files()  # Save parse config to files...
     # devcom.devices.save_icmp_result_to_files('ip_free')  # Save ICMP ip_free result to files...
     # devcom.devices.save_icmp_result_to_files('ip_in_tu')  # Save ICMP ip_in_tu result to files...
     #
@@ -40,7 +40,7 @@ def main():
     # devices_get_disabled_counting(devcom, devices_for_work, print_result=True)
     # # devices_remove_disabled(devcom, devices_for_work, print_result=True)
     # devices.logger.root.info(f'REMOVE DISABLED in CM success.')
-
+    #
     devices.logger.root.info(f'DISABLE PUT commands in CM at {len(devices_for_work)} hosts...')
     devices_set_status(devcom, devices_for_work, 'print', print_result=True)
     # devices_set_status(devcom, devices_for_work, 'disable', print_result=False)

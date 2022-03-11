@@ -77,7 +77,15 @@ class MikrotikConfig:
     @property
     def int_vlans(self):
         """список интерфейсов на которых есть влан"""
-        return set(parse_section(regex_section.interface_vlan, self.config, reg_id=2))
+        section_interface_vlan = regex_section.interface_vlan
+        res = parse_section(section_interface_vlan, self.config, reg_id = 2)
+        return set(res)
+
+    # @property
+    # def int_from_vlans_unknow(self):
+    #     # список интерфейсов начинающихся на "*" на которых есть vlan
+    #     res = [vlan for vlan in self.int_vlans if vlan.startswith('*')]
+    #     return set(res)
 
     @staticmethod
     def exclude_int_in_bonding(int_list, slaves_list):
@@ -190,12 +198,15 @@ class GeneralParam:
         self.add('--eoip_free', 'EOIP, которых нет ни в бриджах, ни во вланах, ни в bonding', mikrot.eoip_free,
                  '/interface eoip print where name="{0}"',
                  '/interface eoip disable [find where name="{0}"]')
-        self.add('--ip_free', 'Remote ip адреса из PPP и EOIP которых нет в ТУ и нет в активных PPP', mikrot.ip_free,
-                 '/interface eoip print where remote-address={0}',
-                 '/interface eoip disable [find where remote-address={0}]')
-        self.add('--icmp_false', 'IP из списка --ip_free, не отвечающие на ICMP c ЦМ ', mikrot.icmp_false,
-                 '/interface eoip print where remote-address={0}',
-                 '/interface eoip disable [find where remote-address={0}]')
+        # """self.add('--vlans_unknow', 'interfaces from vlan unknow', mikrot.int_from_vlans_unknow,
+        #          '/interface vlan print where interface="{0}"',
+        #          '/interface vlan disable [find where interface="{0}"]')"""
+        # self.add('--ip_free', 'Remote ip адреса из PPP и EOIP которых нет в ТУ и нет в активных PPP', mikrot.ip_free,
+        #          '/interface eoip print where remote-address={0}',
+        #          '/interface eoip disable [find where remote-address={0}]')
+        # self.add('--icmp_false', 'IP из списка --ip_free, не отвечающие на ICMP c ЦМ ', mikrot.icmp_false,
+        #          '/interface eoip print where remote-address={0}',
+        #          '/interface eoip disable [find where remote-address={0}]')
 
     def get_description(self):
         key_param = ''
