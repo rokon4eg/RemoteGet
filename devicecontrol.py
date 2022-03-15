@@ -706,13 +706,15 @@ class CommandRunner_Put(DeviceManagement):
             elif action == 'print':
                 set_status_command = self.PRINT_INTERFACE_BY_NAME
             if set_status_command:
-                await self.send_command_run(action, type_int, int_list, where_by, set_status_command, print_result)
+                await self.send_command_run(action, type_int, int_list, set_status_command, print_result, where_by)
         # await asyncio.sleep(SLEEP)
 
-    async def send_command_run(self, action, type_int, int_list, where_by, set_status_command, print_result):
+    async def send_command_run(self, action, type_int, int_list, set_status_command, print_result, where_by=None):
         try:
             await self.open_session()
             count = 0
+            if not where_by:
+                where_by = 'name'
             if self.session.isalive():
                 for int in int_list:
                     count += 1

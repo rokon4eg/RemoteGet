@@ -63,7 +63,8 @@ class MikrotikConfig:
     @property
     def ports_only_from_bridges(self):
         """Получаем список всех интерфейсов в бридж портах """
-        return set(parse_section(regex_section.interface_bridge_port, self.config, reg_id=2))
+        res = set(parse_section(regex_section.interface_bridge_port, self.config, reg_id=2))
+        return res
 
     @property
     def bridge_port_from_bridges(self):

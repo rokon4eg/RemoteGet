@@ -7,7 +7,7 @@ import tools
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list_for_run.xlsx'
-PUT_REMOTE_CM_LIST = 'cm_list_put_2022-03-14.xlsx'
+PUT_REMOTE_CM_LIST = 'cm_list_put_2022-03-15.xlsx'
 SLICE = 50  # максимальное кол-во ip адресов для проверки в одном потоке
 
 
@@ -15,39 +15,44 @@ def main():
     devices = dc.Devices()
     # devices.load_from_yaml(REMOTE_NODE_FILE)
 
-    # devices.load_from_excel(REMOTE_CM_LIST)
-    devices.load_from_excel(PUT_REMOTE_CM_LIST)
+    devices.load_from_excel(REMOTE_CM_LIST)
+    # devices.load_from_excel(PUT_REMOTE_CM_LIST)
 
     devcom = dc.DevicesCommander(devices)
 
-    devices_for_work = devcom.devices.device_list[1:2]
-    # devices_for_work = devcom.devices.device_list
+    # devices_for_work = devcom.devices.device_list[1:2]
+    devices_for_work = devcom.devices.device_list
     # TODO продумать как devices_for_work передавать во все зависимые методы которые выполняются ниже
 
     devices_get_sysname(devcom, devices_for_work, print_result=False)  # Get "sysname" from devices_for_work
-    # devcom.devices.load_export_compact_from_files(date_='2022-03-11')  # Load "export compact" from files...
+    # devcom.devices.load_export_compact_from_files(date_='2022-03-15')  # Load "export compact" from files...
     devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
-    # devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
-    # devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
+    devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
+    devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
     devcom.devices.parse_config()  # Parse config...
+
     # devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_free and ip_in_tu...
-    # """# devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_in_tu..."""
+    #
     devcom.devices.save_parse_result_to_files()  # Save parse config to files...
+    #
     # devcom.devices.save_icmp_result_to_files('ip_free')  # Save ICMP ip_free result to files...
     # devcom.devices.save_icmp_result_to_files('ip_in_tu')  # Save ICMP ip_in_tu result to files...
-    #
+    # #
     # devices.logger.root.info(f'REMOVE DISABLED in CM at {len(devices_for_work)} hosts...')
-    # devices_get_disabled_counting(devcom, devices_for_work, print_result=True)
-    # # devices_remove_disabled(devcom, devices_for_work, print_result=True)
+    # # devices_get_disabled_counting(devcom, devices_for_work, print_result=True)
+    # devices_remove_disabled(devcom, devices_for_work, print_result=True)
     # devices.logger.root.info(f'REMOVE DISABLED in CM success.')
-    #
-    devices.logger.root.info(f'DISABLE PUT commands in CM at {len(devices_for_work)} hosts...')
-    devices_set_status(devcom, devices_for_work, 'print', print_result=True)
+    # # # #
+    # devices.logger.root.info(f'DISABLE PUT commands in CM at {len(devices_for_work)} hosts...')
+    # # devices_set_status(devcom, devices_for_work, 'print', print_result=True)
     # devices_set_status(devcom, devices_for_work, 'disable', print_result=False)
-    devices.logger.root.info(f'DISABLE PUT commands in CM success.')
+    # devices.logger.root.info(f'DISABLE PUT commands in CM success.')
 
     # devices.logger.root.info(f'ENABLE PUT commands in CM at {len(devices_for_work)} hosts...')
-    # devices_set_status(devcom, devices_for_work, 'enable', print_result=False)
+    # # devices_set_status(devcom, devices_for_work, 'enable', print_result=False)
+    # # devices_run_any_command(devcom, devices_for_work, '/system identity print', print_result=True)
+    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-03-15"',
+    #                         print_result=True)
     # devices.logger.root.info(f'ENABLE PUT commands in CM success.')
 
 
@@ -168,6 +173,19 @@ def devices_get_sysname(devcom, devices_for_work, print_result):
         devcom.append_coroutine(comrun.get_sysname(print_result))
     devcom.run()
     msg = f'Get "sysname" success.'
+    devcom.devices.logger.root.info(msg)
+    print(time.strftime("%H:%M:%S"), msg)
+
+
+def devices_run_any_command(devcom, devices_for_work, commands, print_result):
+    msg = f'Run command {commands} in {len(devices_for_work)} hosts...'
+    devcom.devices.logger.root.info(msg)
+    print(time.strftime("%H:%M:%S"), msg)
+    for device in devices_for_work:
+        comrun = dc.CommandRunner_Get(device)
+        devcom.append_coroutine(comrun.get_any_commands(commands, print_result))
+    devcom.run()
+    msg = f'Run command {commands}.'
     devcom.devices.logger.root.info(msg)
     print(time.strftime("%H:%M:%S"), msg)
 
