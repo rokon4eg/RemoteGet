@@ -787,12 +787,17 @@ class CommandRunner_Remove(DeviceManagement):
     GET_COUNT_DISABLED_VLAN = '/interface vlan print count-only where disabled'
     GET_COUNT_DISABLED_BRIDGE_PORT = '/interface bridge port print count-only where disabled'
     GET_COUNT_DISABLED_BRIDGE = '/interface bridge print  count-only where disabled'
+    GET_COUNT_DISABLED_BONDING = '/interface bonding print count-only  where disabled'
+    GET_COUNT_DISABLED_IP_ADDRESSES = '/ip address print count-only where disabled'
 
     REMOVE_DISABLED_PPP = '/ppp secret remove [find where disabled ]'
     REMOVE_DISABLED_EOIP = '/interface eoip remove [find where disabled]'
     REMOVE_DISABLED_VLAN = '/interface vlan remove [find where disabled]'
     REMOVE_DISABLED_BRIDGE_PORT = '/interface bridge port remove [find where disabled]'
     REMOVE_DISABLED_BRIDGE = '/interface bridge remove [find where disabled]'
+    REMOVE_DISABLED_BONDING = '/interface bonding remove [find where disabled]'
+    REMOVE_DISABLED_IP_ADDRESSES = '/ip address remove [find where disabled]'
+
 
     def __init__(self, device):
         super().__init__(device)
@@ -804,7 +809,9 @@ class CommandRunner_Remove(DeviceManagement):
                                                       self.GET_COUNT_DISABLED_EOIP,
                                                       self.GET_COUNT_DISABLED_VLAN,
                                                       self.GET_COUNT_DISABLED_BRIDGE_PORT,
-                                                      self.GET_COUNT_DISABLED_BRIDGE
+                                                      self.GET_COUNT_DISABLED_BRIDGE,
+                                                      self.GET_COUNT_DISABLED_BONDING,
+                                                      self.GET_COUNT_DISABLED_IP_ADDRESSES
                                                       ], print_result=False)
             try:
                 msg = f"DISABLED_PPP = {response_list[0].result}\n" \
@@ -812,6 +819,8 @@ class CommandRunner_Remove(DeviceManagement):
                       f"DISABLED_VLAN = {response_list[2].result}\n" \
                       f"DISABLED_BRIDGE_PORT = {response_list[3].result}\n" \
                       f"DISABLED_BRIDGE = {response_list[4].result}\n" \
+                      f"DISABLED_BONDING = {response_list[5].result}\n" \
+                      f"DISABLED_IP_ADDRESSES = {response_list[6].result}\n" \
                       f"SUM = {sum(int(res.result) for res in response_list)}"
                 if print_result:
                     print(time.strftime("%H:%M:%S"), f'Return disabled counting from '
@@ -820,7 +829,7 @@ class CommandRunner_Remove(DeviceManagement):
                 self.logger.device_com.info(f'return disabled counting from {self.device.ip} ({self.device.name}):'
                                             f'\n{msg}')
             except Exception as err:
-                msg = f'! Error get_disabled_counting = {response_list}'
+                msg = f'! Error get_disabled_counting = {response_list}: {err}'
                 print(msg)
                 self.logger.error.error(msg)
 
@@ -830,7 +839,9 @@ class CommandRunner_Remove(DeviceManagement):
                                                       self.REMOVE_DISABLED_EOIP,
                                                       self.REMOVE_DISABLED_VLAN,
                                                       self.REMOVE_DISABLED_BRIDGE_PORT,
-                                                      self.REMOVE_DISABLED_BRIDGE
+                                                      self.REMOVE_DISABLED_BRIDGE,
+                                                      self.REMOVE_DISABLED_BONDING,
+                                                      self.REMOVE_DISABLED_IP_ADDRESSES
                                                       ], print_result=print_result)
             try:
                 # msg = f"DISABLED_PPP = {response_list[0].result}\n" \

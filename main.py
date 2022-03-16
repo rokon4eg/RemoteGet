@@ -7,7 +7,8 @@ import tools
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list_for_run.xlsx'
-PUT_REMOTE_CM_LIST = 'cm_list_put_2022-03-15.xlsx'
+DISABLE_REMOTE_CM_LIST = 'cm_list_disable_2022-03-16.xlsx'
+REMOVE_REMOTE_CM_LIST = 'cm_list_remove_2022-03-16.xlsx'
 SLICE = 50  # максимальное кол-во ip адресов для проверки в одном потоке
 
 
@@ -16,7 +17,8 @@ def main():
     # devices.load_from_yaml(REMOTE_NODE_FILE)
 
     devices.load_from_excel(REMOTE_CM_LIST)
-    # devices.load_from_excel(PUT_REMOTE_CM_LIST)
+    # devices.load_from_excel(DISABLE_REMOTE_CM_LIST)
+    # devices.load_from_excel(REMOVE_REMOTE_CM_LIST)
 
     devcom = dc.DevicesCommander(devices)
 
@@ -37,7 +39,7 @@ def main():
     #
     # devcom.devices.save_icmp_result_to_files('ip_free')  # Save ICMP ip_free result to files...
     # devcom.devices.save_icmp_result_to_files('ip_in_tu')  # Save ICMP ip_in_tu result to files...
-    # #
+    # # #
     # devices.logger.root.info(f'REMOVE DISABLED in CM at {len(devices_for_work)} hosts...')
     # # devices_get_disabled_counting(devcom, devices_for_work, print_result=True)
     # devices_remove_disabled(devcom, devices_for_work, print_result=True)
@@ -51,7 +53,7 @@ def main():
     # devices.logger.root.info(f'ENABLE PUT commands in CM at {len(devices_for_work)} hosts...')
     # # devices_set_status(devcom, devices_for_work, 'enable', print_result=False)
     # # devices_run_any_command(devcom, devices_for_work, '/system identity print', print_result=True)
-    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-03-15"',
+    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-03-16"',
     #                         print_result=True)
     # devices.logger.root.info(f'ENABLE PUT commands in CM success.')
 
