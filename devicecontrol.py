@@ -304,7 +304,12 @@ class Device:
         self.connect_param = connect_param
         self.city = city
         self.name = name
+        self.zubbix_name = name
         self.id = id
+        self.board_name = ''
+        self.version = ''
+        self.serial = ''
+        self.uptime = ''
         self.false_icmp_list = []
         self.enabled = False
         self.ip = connect_param['host']
@@ -324,9 +329,13 @@ class Device:
         res = dict()
         res['ID'] = self.id
         res['City'] = self.city
-        res['sys name'] = self.name
+        res['sys name'] = self.zubbix_name
         res['MikroTik IP'] = self.ip
-        res['Сonnected'] = self.connect_error
+        res['Error'] = self.connect_error
+        res['Model'] = self.board_name
+        res['Version'] = self.version
+        res['S/N'] = self.serial
+        res['uptime,\ndays'] = self.uptime
         if self.mikroconfig is not None:
             res['Bridge\nempty'] = len(self.mikroconfig.br_empty)
             res['Bridge\nsingle'] = len(self.mikroconfig.br_single)
@@ -382,7 +391,7 @@ class DeviceManagement:
             # f'via {self.session.transport_name}:{self.session.port}: {err}'
             print(msg)
             if get_error:
-                self.device.connect_error = str(err)
+                self.device.connect_error += str(err) + '\n'
             self.device.logger.terminal_output.warning(msg)
             self.device.logger.error.error(msg)
         return self.session
@@ -432,41 +441,49 @@ class DeviceManagement:
                     print(msg)
                     self.device.logger.terminal_output.info(msg)
                 # else:
-                    # msg = f'--- No output. Variable "print_result" set is {print_result}'
-                    # print(msg)
-                    # self.device.logger.terminal_output.info(msg)
-                    # msg = 'elapsed time = ' + str(response.elapsed_time)
-                    # print(msg)
-                    # self.device.logger.terminal_output.info(msg)
+                # msg = f'--- No output. Variable "print_result" set is {print_result}'
+                # print(msg)
+                # self.device.logger.terminal_output.info(msg)
+                # msg = 'elapsed time = ' + str(response.elapsed_time)
+                # print(msg)
+                # self.device.logger.terminal_output.info(msg)
             except Exception as err:
                 msg = f'[{id}]: !Error send command "{command}" on {self.device.city} {self.session.host}- {err}'
                 # f' via {self.session.transport_name}:{self.session.port} Call method: "send_command"\n' \
                 # f'{err}'
                 print(msg)
                 self.device.logger.error.error(msg)
-                if get_error:
-                    response = err
+                # if get_error:
+                #     response = err
             finally:
                 if is_need_open:
                     await self.close_session()
         return response
 
-    async def send_commands(self, commands, print_result=True):
+    async def send_commands(self, commands, print_result=True, get_error=False):
         response_list = []
-        self.session = await self.open_session()
+        self.session = await self.open_session(get_error=get_error)
         if self.session.isalive():
             try:
                 if type(commands) != list:
                     commands = [commands]
                 # response_list = await self.session.send_commands(commands,strip_prompt=True)
                 for command in commands:
-                    response = await self.send_command(command, print_result=print_result, is_need_open=False)
+                    response = await self.send_command(command,
+                                                       print_result=print_result,
+                                                       is_need_open=False,
+                                                       get_error=get_error)
                     response_list.append(response)
             finally:
                 await self.close_session()
         else:
             return None
         return response_list
+
+
+def get_dict_from_strings(strings):
+    res = dict([l.strip().split(': ') for l in strings.split('\n') if l.find(': ') != -1])
+    return res
 
 
 class CommandRunner_Get(DeviceManagement):
@@ -479,6 +496,8 @@ class CommandRunner_Get(DeviceManagement):
     TIMEOUT_GET_CONFIG = 120
     GET_PPP_ACTIVE = '/ppp active pr detail'
     GET_NAME = '/system identity print'
+    GET_ROUTERBOARD = '/system routerboard print'
+    GET_RESOURCE = '/system resource print'
 
     GET_COUNT_INTERFACE = '/interface print count-only'
     GET_COUNT_INTERFACE_ACTIVE = '/interface print count-only where running'
@@ -600,11 +619,38 @@ class CommandRunner_Get(DeviceManagement):
         и устанавливает признак в self.device_list[i].enabled
         + заполняет name
         """
-        response = await self.send_command(self.GET_NAME, print_result, get_error=True)
+        response = await self.send_commands([self.GET_NAME,
+                                             self.GET_RESOURCE,
+                                             self.GET_ROUTERBOARD],
+                                            print_result, get_error=True)
         if response is not None:
             self.device.enabled = True
-            self.device.name = response.result.strip().lstrip('name:').strip()
-            self.logger.device_com.info(f'Host with IP {self.device.ip} return sysname - {self.device.name}')
+            self.device.name = response[0].result.strip().lstrip('name:').strip()
+            resource = response[1].result
+            routerboard = response[2].result
+            try:
+                resource_dict = get_dict_from_strings(resource)
+                self.device.board_name = resource_dict['board-name']
+                self.device.version = resource_dict['version']
+                uptime_ = resource_dict['uptime']
+                week = re.findall(r'(\d*)w', uptime_)
+                week = int(week[0]) if week else 0
+                day = re.findall(r'(\d*)d', uptime_)
+                day = int(day[0]) if day else 0
+                self.device.uptime = 7*week + day
+            except:
+                self.device.connect_error += 'resource=\n' + resource + '\n'
+            try:
+                routerboard_dict = get_dict_from_strings(routerboard)
+                self.device.serial = routerboard_dict['serial-number']
+            except:
+                self.device.connect_error += 'routerboard=\n' + routerboard + '\n'
+
+            self.logger.device_com.info(f'Host with IP {self.device.ip} return sysname: {self.device.name}, '
+                                        f'board_name: {self.device.board_name}, '
+                                        f'version: {self.device.version}, '
+                                        f'uptime: {self.device.uptime},'
+                                        f'serial: {self.device.serial}')
         else:
             self.device.enabled = False
             self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name}) not response!')
@@ -798,7 +844,6 @@ class CommandRunner_Remove(DeviceManagement):
     REMOVE_DISABLED_BONDING = '/interface bonding remove [find where disabled]'
     REMOVE_DISABLED_IP_ADDRESSES = '/ip address remove [find where disabled]'
 
-
     def __init__(self, device):
         super().__init__(device)
         self.logger = Logger()
@@ -826,8 +871,9 @@ class CommandRunner_Remove(DeviceManagement):
                     print(time.strftime("%H:%M:%S"), f'Return disabled counting from '
                                                      f'{self.device.city} - {self.device.ip} - '
                                                      f'({self.device.name}):', msg, sep='\n')
-                self.logger.device_com.info(f'return disabled counting from {self.device.ip} ({self.device.name}):'
-                                            f'\n{msg}')
+                self.logger.device_com.info(f'Return disabled counting from '
+                                            f'{self.device.city} - {self.device.ip} - '
+                                            f'({self.device.name}):\n{msg}')
             except Exception as err:
                 msg = f'! Error get_disabled_counting = {response_list}: {err}'
                 print(msg)

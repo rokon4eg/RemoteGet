@@ -7,8 +7,8 @@ import tools
 
 REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list_for_run.xlsx'
-DISABLE_REMOTE_CM_LIST = 'cm_list_disable_2022-03-16.xlsx'
-REMOVE_REMOTE_CM_LIST = 'cm_list_remove_2022-03-16.xlsx'
+DISABLE_REMOTE_CM_LIST = 'cm_list_disable_2022-03-18.xlsx'
+REMOVE_REMOTE_CM_LIST = 'cm_list_remove_2022-03-18.xlsx'
 SLICE = 50  # максимальное кол-во ip адресов для проверки в одном потоке
 
 
@@ -22,12 +22,12 @@ def main():
 
     devcom = dc.DevicesCommander(devices)
 
-    # devices_for_work = devcom.devices.device_list[1:2]
+    # devices_for_work = devcom.devices.device_list[140:141]
     devices_for_work = devcom.devices.device_list
     # TODO продумать как devices_for_work передавать во все зависимые методы которые выполняются ниже
 
     devices_get_sysname(devcom, devices_for_work, print_result=False)  # Get "sysname" from devices_for_work
-    # devcom.devices.load_export_compact_from_files(date_='2022-03-15')  # Load "export compact" from files...
+    # devcom.devices.load_export_compact_from_files(date_='2022-03-18')  # Load "export compact" from files...
     devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
     devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
     devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
@@ -39,7 +39,7 @@ def main():
     #
     # devcom.devices.save_icmp_result_to_files('ip_free')  # Save ICMP ip_free result to files...
     # devcom.devices.save_icmp_result_to_files('ip_in_tu')  # Save ICMP ip_in_tu result to files...
-    # # #
+    # # # #
     # devices.logger.root.info(f'REMOVE DISABLED in CM at {len(devices_for_work)} hosts...')
     # # devices_get_disabled_counting(devcom, devices_for_work, print_result=True)
     # devices_remove_disabled(devcom, devices_for_work, print_result=True)
@@ -53,7 +53,7 @@ def main():
     # devices.logger.root.info(f'ENABLE PUT commands in CM at {len(devices_for_work)} hosts...')
     # # devices_set_status(devcom, devices_for_work, 'enable', print_result=False)
     # # devices_run_any_command(devcom, devices_for_work, '/system identity print', print_result=True)
-    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-03-16"',
+    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-03-18"',
     #                         print_result=True)
     # devices.logger.root.info(f'ENABLE PUT commands in CM success.')
 
