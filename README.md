@@ -30,6 +30,7 @@
 
 
 **Сохраняет полученную информацию в сводную таблицу**
+![image](https://user-images.githubusercontent.com/32700236/160656191-163df122-10f3-4eb9-b7f4-0a0642fc85da.png)
 
 
 devicecontrol.Devices.save_parse_result_to_files
