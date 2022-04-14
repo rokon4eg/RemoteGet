@@ -129,19 +129,22 @@ class Devices:
         """
         data = pandas.read_excel(filename)
         for node in data.iloc:
-            if ('run' not in node) or (str(node['run']).lower() != 'false'):
-                config = self.config_example.copy()
-                config['host'] = node['IP_DEVICE']
-                config['auth_username'] = node['LOGIN']
-                config['auth_password'] = node['PASSWORD']
-                dev = Device(connect_param=config.copy(),
-                             city=node['Город'],
-                             name=node['NAME_DEVICE'],
-                             id=str(node['ID']))
-                self.device_list.append(dev)
-                # self.logger.root.setLevel(logging.INFO)
-                self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
-                                    f' transport={config["transport"]}')
+            config = self.config_example.copy()
+            config['host'] = node['IP_DEVICE']
+            config['auth_username'] = node['LOGIN']
+            config['auth_password'] = node['PASSWORD']
+            dev = Device(connect_param=config.copy(),
+                         city=node['Город'],
+                         name=node['NAME_DEVICE'],
+                         id=str(node['ID']))
+            if ('run' in node) and (str(node['run']).lower() == 'false'):
+                dev.enabled = False
+                if ('error' in node):
+                    dev.connect_error = node['error']
+            self.device_list.append(dev)
+            # self.logger.root.setLevel(logging.INFO)
+            self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
+                                f' transport={config["transport"]}')
 
     def load_export_compact_from_files(self, dir_='', date_=''):
         """
@@ -291,6 +294,49 @@ class Devices:
         self.logger.root.info(f'Save ICMP result success.')
         print(time.strftime("%H:%M:%S"), f'Save ICMP {type_ip_list} result success.')
 
+    def save_summary_icmp_result(self, type_ip_list):
+        self.logger.root.info(f'Save summary ICMP {type_ip_list} result to files...')
+        print(time.strftime("%H:%M:%S"), f'Save summary ICMP {type_ip_list} result to files...')
+        dir_output = ''
+        if type_ip_list == 'ip_free':
+            dir_output = self.dir_output_icmp_ip_free
+        elif type_ip_list == 'ip_in_tu':
+            dir_output = self.dir_output_icmp_ip_in_tu
+        if not os.path.exists(dir_output):
+            os.mkdir(dir_output)
+        file_summary_icmp = os.path.join(dir_output, 'summary_'+type_ip_list+'.xlsx')
+        if os.path.exists(file_summary_icmp):
+            os.remove(file_summary_icmp)
+        for device in self.device_list:
+            ip_result = ''
+            if type_ip_list == 'ip_free':
+                ip_result = device.icmp_ip_free_result
+            elif type_ip_list == 'ip_in_tu':
+                ip_result = device.icmp_ip_in_tu_result
+            data = None
+            if ip_result and dir_output:
+                # Город	Name MikroTik	IP MikroTik	remote IP	ICMP
+                res_json = json.dumps({'City': device.city,
+                                       'CMikroTik Name': device.zubbix_name,
+                                       'CMikroTik IP': device.ip,
+                                       'ICMP remote CPE': ip_result
+                                       })
+                new_data = pandas.read_json(res_json)
+                if data is None:
+                    data = new_data
+                else:
+                    data = pandas.concat([data, new_data])
+                try:
+                    data.to_excel(file_summary_icmp)
+                    print(time.strftime("%H:%M:%S"), f'save file {file_summary_icmp}')
+                except Exception as err:
+                    msg = f'! Error save file {file_summary_icmp} with summary icmp result.Call:"save_summary_icmp_result"\n' \
+                          f'{err}'
+                    print(msg)
+                    self.logger.error.error(msg)
+        self.logger.root.info(f'Save summary ICMP result success.')
+        print(time.strftime("%H:%M:%S"), f'Save summary ICMP {type_ip_list} result success.')
+
 
 class Device:
     count = -1
@@ -311,7 +357,7 @@ class Device:
         self.serial = ''
         self.uptime = ''
         self.false_icmp_list = []
-        self.enabled = False
+        self.enabled = True
         self.ip = connect_param['host']
         self.result_parsing = ''
         self.icmp_ip_free_result = dict()
@@ -613,47 +659,57 @@ class CommandRunner_Get(DeviceManagement):
                 print(msg)
                 self.logger.error.error(msg)
 
-    async def get_sysname(self, print_result):
+    async def get_sysname(self, print_result, check_enabled=False):
         """
         Метод проверяет каждое устройство из device_list на доступность
         и устанавливает признак в self.device_list[i].enabled
         + заполняет name
         """
-        response = await self.send_commands([self.GET_NAME,
-                                             self.GET_RESOURCE,
-                                             self.GET_ROUTERBOARD],
-                                            print_result, get_error=True)
-        if response is not None:
-            self.device.enabled = True
-            self.device.name = response[0].result.strip().lstrip('name:').strip()
-            resource = response[1].result
-            routerboard = response[2].result
-            try:
-                resource_dict = get_dict_from_strings(resource)
-                self.device.board_name = resource_dict['board-name']
-                self.device.version = resource_dict['version']
-                uptime_ = resource_dict['uptime']
-                week = re.findall(r'(\d*)w', uptime_)
-                week = int(week[0]) if week else 0
-                day = re.findall(r'(\d*)d', uptime_)
-                day = int(day[0]) if day else 0
-                self.device.uptime = 7*week + day
-            except:
-                self.device.connect_error += 'resource=\n' + resource + '\n'
-            try:
-                routerboard_dict = get_dict_from_strings(routerboard)
-                self.device.serial = routerboard_dict['serial-number']
-            except:
-                self.device.connect_error += 'routerboard=\n' + routerboard + '\n'
+        if (not check_enabled) or self.device.enabled:
+            self.device.enabled = False  # Устанавлием в Ложь, чтоб затем установить в Истину в случае получения ответа
+            response = await self.send_commands([self.GET_NAME,
+                                                 self.GET_RESOURCE,
+                                                 self.GET_ROUTERBOARD],
+                                                print_result, get_error=True)
+            if response is not None:
+                self.device.enabled = True
+                resource = ''
+                routerboard = ''
+                try:
+                    self.device.name = response[0].result.strip().lstrip('name:').strip()
+                    resource = response[1].result
+                    routerboard = response[2].result
+                except:
+                    pass
 
-            self.logger.device_com.info(f'Host with IP {self.device.ip} return sysname: {self.device.name}, '
-                                        f'board_name: {self.device.board_name}, '
-                                        f'version: {self.device.version}, '
-                                        f'uptime: {self.device.uptime},'
-                                        f'serial: {self.device.serial}')
-        else:
-            self.device.enabled = False
-            self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name}) not response!')
+
+                try:
+                    resource_dict = get_dict_from_strings(resource)
+                    self.device.board_name = resource_dict['board-name']
+                    self.device.version = resource_dict['version']
+                    uptime_ = resource_dict['uptime']
+                    week = re.findall(r'(\d*)w', uptime_)
+                    week = int(week[0]) if week else 0
+                    day = re.findall(r'(\d*)d', uptime_)
+                    day = int(day[0]) if day else 0
+                    self.device.uptime = 7*week + day
+                except:
+                    self.device.connect_error += 'resource=\n' + resource + '\n'
+
+                try:
+                    routerboard_dict = get_dict_from_strings(routerboard)
+                    self.device.serial = routerboard_dict['serial-number']
+                except:
+                    self.device.connect_error += 'routerboard=\n' + routerboard + '\n'
+
+                self.logger.device_com.info(f'Host with IP {self.device.ip} return sysname: {self.device.name}, '
+                                            f'board_name: {self.device.board_name}, '
+                                            f'version: {self.device.version}, '
+                                            f'uptime: {self.device.uptime},'
+                                            f'serial: {self.device.serial}')
+            else:
+                self.device.enabled = False
+                self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name}) not response!')
 
     async def get_any_commands(self, commands, print_result=True):
         return await self.send_commands(commands, print_result)
@@ -703,19 +759,19 @@ class CommandRunner_Put(DeviceManagement):
         super().__init__(device)
         self.logger = Logger()
 
-    async def set_status_interfaces(self, action, print_result):
+    async def set_status_interfaces(self, action, print_result, check_enabled):
         if self.device.mikroconfig:
             bridges = self.device.mikroconfig.br_empty | self.device.mikroconfig.br_single
             await self.set_status_interfaces_by_name(action, 'bridge', bridges,
-                                                     print_result=print_result)  # set_status bridge empty and single
+                                                     print_result, check_enabled)  # set_status bridge empty and single
 
             eoip_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'eoip']
             await self.set_status_interfaces_by_name(action, 'eoip', eoip_single,
-                                                     print_result=print_result)  # set_status eoip single
+                                                     print_result, check_enabled)  # set_status eoip single
 
             vlan_single = [int for int, type in self.device.mikroconfig.int_single_dict.items() if type == 'vlan']
             await self.set_status_interfaces_by_name(action, 'vlan', vlan_single,
-                                                     print_result=print_result)  # set_status vlan single
+                                                     print_result, check_enabled)  # set_status vlan single
 
             eoips = self.device.mikroconfig.eoip_free
             await self.set_status_interfaces_by_name(action, 'eoip', eoips,
@@ -723,11 +779,11 @@ class CommandRunner_Put(DeviceManagement):
 
             vlans = self.device.mikroconfig.vlans_free
             await self.set_status_interfaces_by_name(action, 'vlan', vlans,
-                                                     print_result=print_result)  # set_status vlan free
+                                                     print_result, check_enabled)  # set_status vlan free
 
             bridge_ports = self.device.mikroconfig.int_single_dict.keys()
             await self.set_status_bridge_port_by_name(action, 'interface', bridge_ports,
-                                                      print_result=print_result)  # set_status bridge ports
+                                                      print_result, check_enabled)  # set_status bridge ports
 
             # """int_from_vlans_unknow = self.device.mikroconfig.int_from_vlans_unknow
             # await self.set_status_interfaces_by_name(action, 'vlan', int_from_vlans_unknow, where_by='interface',
@@ -735,7 +791,7 @@ class CommandRunner_Put(DeviceManagement):
 
             ip_ppp = self.device.mikroconfig.ip_ppp_free
             await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_ppp,
-                                                   print_result=print_result)  # set_status ip_ppp free
+                                                   print_result, check_enabled)  # set_status ip_ppp free
 
     async def set_status_interfaces_by_name(self, action, type_int, int_list, where_by=None,
                                             print_result=True, check_enabled=False):
@@ -848,38 +904,35 @@ class CommandRunner_Remove(DeviceManagement):
         super().__init__(device)
         self.logger = Logger()
 
-    async def get_disabled_counting(self, print_result=False, check_enabled=False):
+    async def get_disabled_counting(self, print_result=False, check_enabled=True):
+        int_names = {'DISABLED_PPP': self.GET_COUNT_DISABLED_PPP,
+                     'DISABLED_EOIP': self.GET_COUNT_DISABLED_EOIP,
+                     'DISABLED_VLAN': self.GET_COUNT_DISABLED_VLAN,
+                     'DISABLED_BRIDGE_PORT': self.GET_COUNT_DISABLED_BRIDGE_PORT,
+                     'DISABLED_BRIDGE': self.GET_COUNT_DISABLED_BRIDGE,
+                     'DISABLED_BONDING': self.GET_COUNT_DISABLED_BONDING,
+                     'DISABLED_IP_ADDRESSES': self.GET_COUNT_DISABLED_IP_ADDRESSES,
+                     }
         if (not check_enabled) or self.device.enabled:
-            response_list = await self.send_commands([self.GET_COUNT_DISABLED_PPP,
-                                                      self.GET_COUNT_DISABLED_EOIP,
-                                                      self.GET_COUNT_DISABLED_VLAN,
-                                                      self.GET_COUNT_DISABLED_BRIDGE_PORT,
-                                                      self.GET_COUNT_DISABLED_BRIDGE,
-                                                      self.GET_COUNT_DISABLED_BONDING,
-                                                      self.GET_COUNT_DISABLED_IP_ADDRESSES
-                                                      ], print_result=False)
+            response_list = await self.send_commands(list(int_names.values()), print_result=False)
             try:
-                msg = f"DISABLED_PPP = {response_list[0].result}\n" \
-                      f"DISABLED_EOIP = {response_list[1].result}\n" \
-                      f"DISABLED_VLAN = {response_list[2].result}\n" \
-                      f"DISABLED_BRIDGE_PORT = {response_list[3].result}\n" \
-                      f"DISABLED_BRIDGE = {response_list[4].result}\n" \
-                      f"DISABLED_BONDING = {response_list[5].result}\n" \
-                      f"DISABLED_IP_ADDRESSES = {response_list[6].result}\n" \
-                      f"SUM = {sum(int(res.result) for res in response_list)}"
+                total = sum(int(res.result) for res in response_list)
+                int_names_and_count = zip(int_names.keys(), response_list)
+                int_count = [f'{int_[0]} = {int_[1].result}' for int_ in int_names_and_count if int_[1].result != '0']
+                msg = '\n'.join(int_count)
                 if print_result:
                     print(time.strftime("%H:%M:%S"), f'Return disabled counting from '
                                                      f'{self.device.city} - {self.device.ip} - '
-                                                     f'({self.device.name}):', msg, sep='\n')
+                                                     f'({self.device.name}): {total}', msg, sep='\n')
                 self.logger.device_com.info(f'Return disabled counting from '
                                             f'{self.device.city} - {self.device.ip} - '
-                                            f'({self.device.name}):\n{msg}')
+                                            f'({self.device.name}): {total}\n{msg}')
             except Exception as err:
                 msg = f'! Error get_disabled_counting = {response_list}: {err}'
                 print(msg)
                 self.logger.error.error(msg)
 
-    async def remove_disabled(self, print_result=False, check_enabled=False):
+    async def remove_disabled(self, print_result=False, check_enabled=True):
         if (not check_enabled) or self.device.enabled:
             response_list = await self.send_commands([self.REMOVE_DISABLED_PPP,
                                                       self.REMOVE_DISABLED_EOIP,
@@ -890,12 +943,6 @@ class CommandRunner_Remove(DeviceManagement):
                                                       self.REMOVE_DISABLED_IP_ADDRESSES
                                                       ], print_result=print_result)
             try:
-                # msg = f"DISABLED_PPP = {response_list[0].result}\n" \
-                #       f"DISABLED_EOIP = {response_list[1].result}\n" \
-                #       f"DISABLED_VLAN = {response_list[2].result}\n" \
-                #       f"DISABLED_BRIDGE_PORT = {response_list[3].result}\n" \
-                #       f"DISABLED_BRIDGE = {response_list[4].result}\n"
-                # if print_result:
                 print(f'remove disabled from {self.device.ip} ({self.device.name}:')
                 self.logger.device_com.info(f'remove disabled from {self.device.ip} ({self.device.name})')
             except Exception as err:
