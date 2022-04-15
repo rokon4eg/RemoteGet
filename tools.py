@@ -138,7 +138,7 @@ def extract_IP_from_tu_service():
     FILE_SERVICE_MSK = 'Клиенты по аналитич.группам с трафиком ver2 - Москва.xlsx'
 
     DIR_IP = 'output_icmp_ip_in_tu'
-    FILE_IP_MSK = 'Москва_r1.mikrotik.msk_output_icmp_ip_in_tu.xlsx'
+    FILE_IP_MSK = 'summary_ip_in_tu.xlsx'
 
     DIR_OUTPUT = 'output_ip_service'
     data_service = ExternalDataService(os.path.join(DIR_SERVICE, FILE_SERVICE_MSK),
@@ -152,8 +152,11 @@ def extract_IP_from_tu_service():
                                   #          'IP адрес', 'Маска сети', 'Тип устройства', 'IP Aдрес устройства'],
                                   # column_for_check_na='IP Aдрес устройства',
                                   )
-    ip_service = pandas.merge(data_service.data, data_ip.data,
-                              left_on='IP Aдрес устройства', right_on=data_ip.data.columns[0])
+    # Фильтруем данные только по Москве и удаляем дубликаты IP
+    msk_ip_data = data_ip.data[data_ip.data['City']=='Москва'].drop_duplicates(subset=['IP remote CPE'])
+
+    ip_service = pandas.merge(data_service.data, msk_ip_data,
+                              left_on='IP Aдрес устройства', right_on='IP remote CPE', how='right')
     ip_service.to_excel(os.path.join(DIR_OUTPUT, 'msk_ip_service.xlsx'))
 
 
