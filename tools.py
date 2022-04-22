@@ -2,6 +2,42 @@ import json
 import os, pandas, numpy
 import time
 
+cities_ekt = ('Екатеринбург', 'Пермь', 'Уфа', 'Хабаровск', 'Тюмень', 'Челябинск', 'Самара', 'Нижний Тагил', 'Ижевск',
+              'Тольятти', 'Каменск-Уральский', 'Магнитогорск', 'Сызрань', 'Златоуст', 'Миасс', 'Ванино', 'Киров',
+              'Нижневартовск', 'Сургут', 'Курган', 'Сибай')
+cities_nsk = ('Новосибирск', 'Барнаул', 'Красноярск', 'Владивосток', 'Иркутск', 'Новокузнецк', 'Омск', 'Оренбург',
+              'Йошкар-Ола', 'Тула', 'Комсомольск-на-Амуре', 'Нижний Новгород', 'Томск', 'Кемерово', 'Прокопьевск',
+              'Орск', 'Южно-Сахалинск', 'Новомосковск', 'Ангарск', 'Бийск', 'Рубцовск', 'Дзержинск', 'Артём',
+              'Чебоксары', 'Иваново', 'Благовещенск', 'Волжск')
+cities_spb = ('Санкт-Петербург', 'Пенза', 'Рязань', 'Ульяновск', 'Ярославль', 'Уссурийск', 'Находка', 'Саратов',
+              'Димитровград', 'Братск', 'Рыбинск', 'Биробиджан', 'Казань', 'Калуга', 'Белгород', 'Саранск', 'Владимир',
+              'Набережные Челны', 'Сыктывкар', 'Орёл', 'Мурманск', 'Череповец', 'Смоленск', 'Псков', 'Брянск',
+              'Вологда', 'Тверь', 'Чита', 'Калининград', 'Кострома', 'Архангельск', 'Великий Новгород')
+cities_rnd = ('Ростов-на-Дону', 'Воронеж', 'Липецк', 'Волгоград', 'Краснодар', 'Таганрог', 'Шахты', 'Новочеркасск',
+              'Астрахань', 'Улан-Удэ', 'Армавир', 'Сочи', 'Новороссийск', 'Махачкала', 'Курск', 'Тамбов', 'Элиста',
+              'Ставрополь')
+cities_msk = ('Москва',)
+
+SERVERS = {cities_ekt: 'Екатеринбург',
+           cities_msk: 'Москва',
+           cities_nsk: 'Новосибирск',
+           cities_spb: 'Санкт-Петербург',
+           cities_rnd: 'Ростов-на-Дону'
+           }
+
+SERVICE_FILES = {cities_ekt: 'Клиенты по аналитич.группам с трафиком ver2 - Екатеринбург.xlsx',
+                 cities_msk: 'Клиенты по аналитич.группам с трафиком ver2 - Москва.xlsx',
+                 cities_nsk: 'Клиенты по аналитич.группам с трафиком ver2 - Новосибирск.xlsx',
+                 cities_spb: 'Клиенты по аналитич.группам с трафиком ver2 - Санкт-Петербург.xlsx',
+                 cities_rnd: 'Клиенты по аналитич.группам с трафиком ver2 - Ростов на Дону.xlsx'
+                 }
+
+TU_FILES = {cities_ekt: 'Устройства с данными для мониторинга - Екатеринбург.xlsx',
+            cities_msk: 'Устройства с данными для мониторинга - Москва.xlsx',
+            cities_nsk: 'Устройства с данными для мониторинга - Новосибирск.xlsx',
+            cities_spb: 'Устройства с данными для мониторинга - СПБ.xlsx',
+            cities_rnd: 'Устройства с данными для мониторинга - РНД.xlsx'
+            }
 
 class ExtDataBase:
     def __init__(self, filename, columns=None, column_for_check_na=None):
@@ -135,29 +171,47 @@ def extract_IP_from_tu_excel():
 
 def extract_IP_from_tu_service():
     DIR_SERVICE = 'service_excel'
-    FILE_SERVICE_MSK = 'Клиенты по аналитич.группам с трафиком ver2 - Москва.xlsx'
+    DIR_TU = 'tu_excel'
+    # FILE_SERVICE_MSK = 'Клиенты по аналитич.группам с трафиком ver2 - Москва.xlsx'
 
     DIR_IP = 'output_icmp_ip_in_tu'
-    FILE_IP_MSK = 'summary_ip_in_tu.xlsx'
+    FILE_IP_TU = 'summary_ip_in_tu.xlsx'
 
     DIR_OUTPUT = 'output_ip_service'
-    data_service = ExternalDataService(os.path.join(DIR_SERVICE, FILE_SERVICE_MSK),
-                                       columns=['ID_STR', 'ID подключения', 'Клиент', '№ договора', 'Текущий тариф',
-                                                'Адрес предоставления услуги', 'Услуга', 'Рабочее место (название)',
-                                                'IP адрес', 'Маска сети', 'Тип устройства', 'IP Aдрес устройства'],
-                                       column_for_check_na='IP Aдрес устройства')
-    data_ip = ExternalDataService(os.path.join(DIR_IP, FILE_IP_MSK),
+    data_ip = ExternalDataService(os.path.join(DIR_IP, FILE_IP_TU),
                                   # columns=['ID_STR', 'ID подключения', 'Клиент', '№ договора', 'Текущий тариф',
                                   #          'Адрес предоставления услуги', 'Услуга', 'Рабочее место (название)',
                                   #          'IP адрес', 'Маска сети', 'Тип устройства', 'IP Aдрес устройства'],
                                   # column_for_check_na='IP Aдрес устройства',
                                   )
-    # Фильтруем данные только по Москве и удаляем дубликаты IP
-    msk_ip_data = data_ip.data[data_ip.data['City']=='Москва'].drop_duplicates(subset=['IP remote CPE'])
-
-    ip_service = pandas.merge(data_service.data, msk_ip_data,
-                              left_on='IP Aдрес устройства', right_on='IP remote CPE', how='right')
-    ip_service.to_excel(os.path.join(DIR_OUTPUT, 'msk_ip_service.xlsx'))
+    summary_ip_services = pandas.core.frame.DataFrame()
+    for server in SERVERS:
+        print(f'Анализ городов на сервере {SERVERS[server]}.')
+        data_service = ExternalDataService(os.path.join(DIR_SERVICE, SERVICE_FILES[server]),
+                                           columns=['ID_STR', 'ID подключения', 'Клиент', '№ договора',
+                                                    'Текущий тариф', 'Адрес предоставления услуги', 'Услуга',
+                                                    'Рабочее место (название)', 'IP адрес', 'Маска сети',
+                                                    'Тип устройства', 'IP Aдрес устройства'],
+                                           column_for_check_na='IP Aдрес устройства')
+        data_tu = ExternalDataService(os.path.join(DIR_TU, TU_FILES[server]),
+                                           columns=['Город', 'ID_DEVICE', 'NAME_DEVICE', 'IP_DEVICE', 'ADDRESS',
+                                                    'TYPE_NAME', 'Услуги'],
+                                           column_for_check_na='IP_DEVICE')
+        # Фильтруем данные только по Городу и удаляем дубликаты IP
+        for city in server:
+            print(f'Фильтруем по городу {city}')
+            city_ip_data = data_ip.data[data_ip.data['City'] == city].drop_duplicates(subset=['IP remote CPE'])
+            ip_service = pandas.merge(data_service.data, city_ip_data,
+                                      left_on='IP Aдрес устройства', right_on='IP remote CPE', how='right')
+            if ip_service['IP remote CPE'].count() > 0:
+                ip_service.to_excel(os.path.join(DIR_OUTPUT, city+'_ip_service.xlsx'))
+            # ip_service = pandas.merge(data_service.data, city_ip_data,
+            #                           left_on='IP Aдрес устройства', right_on='IP remote CPE', how='right')
+            ip_tu = pandas.merge(ip_service[ip_service['ID_STR']==''], data_tu.data, left_on='IP Aдрес устройства',
+                                 right_on='IP_DEVICE', how='inner')
+            #TODO доделать мерже
+            summary_ip_services = pandas.concat([summary_ip_services, ip_service])
+    summary_ip_services.to_excel(os.path.join(DIR_OUTPUT, 'summary_ip_service.xlsx'))
 
 
 def main():
