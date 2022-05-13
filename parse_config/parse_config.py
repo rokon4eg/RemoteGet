@@ -117,7 +117,7 @@ class MikrotikConfig:
         ip_ppp_free_ = _ip_ppp - _ip_eoip - self.ip_active_ppp
         ip_all = (_ip_ppp | _ip_eoip)
         ip_free_.update(ip_all - self.ip_from_tu - self.ip_active_ppp)
-        ip_in_tu_.update(ip_all - ip_free_)
+        ip_in_tu_ = ip_all & self.ip_from_tu
         return ip_free_, ip_in_tu_, ip_ppp_free_
 
     def get_eoip_free(self):

@@ -39,6 +39,7 @@ TU_FILES = {cities_ekt: 'Устройства с данными для мони�
             cities_rnd: 'Устройства с данными для мониторинга - РНД.xlsx'
             }
 
+
 class ExtDataBase:
     def __init__(self, filename, columns=None, column_for_check_na=None):
         # self.data = None
@@ -170,6 +171,10 @@ def extract_IP_from_tu_excel():
 
 
 def extract_IP_from_tu_service():
+    """
+    К содержимому файла {FILE_IP_TU} основываясь на "Remote IP" добавляет данные из файла с услугами и с данными из ТУ
+    Результат сохраняет в "summary_ip_service.xlsx"
+    """
     DIR_SERVICE = 'service_excel'
     DIR_TU = 'tu_excel'
     # FILE_SERVICE_MSK = 'Клиенты по аналитич.группам с трафиком ver2 - Москва.xlsx'
@@ -188,35 +193,107 @@ def extract_IP_from_tu_service():
     for server in SERVERS:
         print(f'Анализ городов на сервере {SERVERS[server]}.')
         data_service = ExternalDataService(os.path.join(DIR_SERVICE, SERVICE_FILES[server]),
-                                           columns=['ID_STR', 'ID подключения', 'Клиент', '№ договора',
-                                                    'Текущий тариф', 'Адрес предоставления услуги', 'Услуга',
-                                                    'Рабочее место (название)', 'IP адрес', 'Маска сети',
+                                           columns=['ID_STR', 'ID подключения', 'Статус подключения', 'Клиент',
+                                                    '№ договора', 'Текущий тариф', 'Адрес предоставления услуги',
+                                                    'Услуга', 'Рабочее место (название)', 'IP адрес', 'Маска сети',
                                                     'Тип устройства', 'IP Aдрес устройства'],
                                            column_for_check_na='IP Aдрес устройства')
         data_tu = ExternalDataService(os.path.join(DIR_TU, TU_FILES[server]),
-                                           columns=['Город', 'ID_DEVICE', 'NAME_DEVICE', 'IP_DEVICE', 'ADDRESS',
-                                                    'TYPE_NAME', 'Услуги'],
-                                           column_for_check_na='IP_DEVICE')
+                                      columns=['Город', 'ID_DEVICE', 'NAME_DEVICE', 'IP_DEVICE', 'ADDRESS',
+                                               'TYPE_NAME', 'Услуги'],
+                                      column_for_check_na='IP_DEVICE')
         # Фильтруем данные только по Городу и удаляем дубликаты IP
         for city in server:
             print(f'Фильтруем по городу {city}')
-            city_ip_data = data_ip.data[data_ip.data['City'] == city].drop_duplicates(subset=['IP remote CPE'])
-            ip_service = pandas.merge(data_service.data, city_ip_data,
-                                      left_on='IP Aдрес устройства', right_on='IP remote CPE', how='right')
-            if ip_service['IP remote CPE'].count() > 0:
-                ip_service.to_excel(os.path.join(DIR_OUTPUT, city+'_ip_service.xlsx'))
+            city_ip_cpe = data_ip.data[data_ip.data['City'] == city].drop_duplicates(subset=['IP remote CPE'])
+            city_ip_service = pandas.merge(city_ip_cpe, data_service.data,
+                                           right_on='IP Aдрес устройства', left_on='IP remote CPE', how='left')
+            columns = list(city_ip_service.columns)
+            columns.remove('IP Aдрес устройства')
+            if city_ip_service[city_ip_service['ID_STR'].notna()]['ID_STR'].count() > 0:
+                city_ip_service[city_ip_service['ID_STR'].notna()][columns].to_excel(os.path.join(DIR_OUTPUT,
+                                                                                                  city + '_ip_service.xlsx'))
             # ip_service = pandas.merge(data_service.data, city_ip_data,
             #                           left_on='IP Aдрес устройства', right_on='IP remote CPE', how='right')
-            ip_tu = pandas.merge(ip_service[ip_service['ID_STR']==''], data_tu.data, left_on='IP Aдрес устройства',
-                                 right_on='IP_DEVICE', how='inner')
-            #TODO доделать мерже
-            summary_ip_services = pandas.concat([summary_ip_services, ip_service])
+            # city_ip_service_and_tu = pandas.merge(city_ip_service[columns], data_tu.data[data_tu.data['Город'] == city],
+            city_ip_service_and_tu = pandas.merge(city_ip_service[columns], data_tu.data,
+                                                  left_on='IP remote CPE',
+                                                  right_on='IP_DEVICE', how='left')
+            summary_ip_services = pandas.concat([summary_ip_services, city_ip_service_and_tu])
     summary_ip_services.to_excel(os.path.join(DIR_OUTPUT, 'summary_ip_service.xlsx'))
+
+
+def analyzeDynamicICMP(dir_path, file_mask, output_file):
+    import glob
+
+    def filter_good(df, column):
+        # Отбираем успешные ICMP запросы
+        return (df[column]).values.astype(str) > 'Успешно'
+
+    def filter_bad(df, column):
+        # Отбираем не успешные ICMP запросы
+        return (df[column]).values.astype(str) < 'Успешно'
+
+    def analyze_column(df, column):
+        # Успешные ICMP запросы помечаем 1, не успешные - 0
+        df[column][filter_bad(df, column)] = 0
+        df[column][filter_good(df, column)] = 1
+
+    file_list = glob.glob1(dir_path, f'{file_mask}')
+    all_city_icmp_data = None
+    for file in file_list:
+        city_name = file[:file.find('_')]
+        city_icmp = ExtDataBase(os.path.join(dir_path, file),
+                                # columns=['Город', 'NAME_DEVICE', 'IP_DEVICE', 'LOGIN', 'PASSWORD'],
+                                # column_for_check_na='IP_DEVICE')
+                                )
+        for column in city_icmp.data.columns[1:-3]:
+            analyze_column(city_icmp.data, column)
+
+        ip_list = []
+        city_name_list = []
+        cmikrotik_name_list = []
+        cmikrotik_ip_list = []
+
+        icmp_sum_list = []
+        icmp_sum_last7_list = []
+        for row in city_icmp.data.iterrows():
+            row_val = row[1]
+            ip_list.append(row_val[0])
+            city_name_list.append(row_val['City'])
+            cmikrotik_name_list.append(row_val['CMikroTik Name'])
+            cmikrotik_ip_list.append(row_val['CMikroTik IP'])
+
+            # сумма всех значений, за исключением трех столбцов - City, CMikroTik Name, CMikroTik IP
+            icmp_sum_list.append(row_val[1:-3].sum())
+            try:
+                # сумма последних семи значений, за исключением трех столбцов - City, CMikroTik Name, CMikroTik IP
+                icmp_sum_last7_list.append(row_val[-4:-11:-1].sum())
+            except BaseException:
+                icmp_sum_last7_list.append('Error')
+
+        d = {'Remote IP': ip_list,
+             'CityCM': city_name_list,
+             'CMikroTik Name': cmikrotik_name_list,
+             'CMikroTik IP': cmikrotik_ip_list,
+             'ICMP TOTAL': len(city_icmp.data.columns) - 4,
+             'TRUE ICMP ALL TIME': icmp_sum_list,
+             'TRUE ICMP LAST WEEK': icmp_sum_last7_list}
+        city_icmp_data = pandas.read_json(json.dumps(d))
+        if all_city_icmp_data is None:
+            all_city_icmp_data = city_icmp_data
+        else:
+            all_city_icmp_data = pandas.concat([all_city_icmp_data, city_icmp_data])
+
+    all_city_icmp_data.to_excel(os.path.join(dir_path, output_file))
 
 
 def main():
     # extract_IP_from_tu_excel()
     extract_IP_from_tu_service()
+    # analyzeDynamicICMP('output_icmp_ip_free_new', 'Кемерово*', 'temp_summary_ip_free_dynamic.xlsx')
+    # analyzeDynamicICMP('output_icmp_ip_free_new', '[!~$]*icmp_ip_free*', 'summary_ip_free_dynamic.xlsx')
+    # analyzeDynamicICMP('output_icmp_ip_in_tu_new', '[!~$]*icmp_ip_in_tu*', 'summary_ip_in_tu_dynamic.xlsx')
 
 
 if __name__ == "__main__":

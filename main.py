@@ -1,5 +1,8 @@
+import os.path
 import time
 from datetime import datetime
+
+import pandas
 
 import devicecontrol as dc
 # from devicecontrol import DevicesCommander, CommandRunner_Get
@@ -11,6 +14,10 @@ DISABLE_REMOTE_CM_LIST = 'cm_list_disable_2022-03-30.xlsx'
 REMOVE_REMOTE_CM_LIST = 'cm_list_remove_2022-04-11.xlsx'
 
 REMOTE_CTR_LIST = 'ctr_list_for_run.xlsx'
+
+
+DIR_PPR_IP_FREE = 'ppr_ip_free'
+FILE_NAME_PPR_IP_FREE = 'ppr_ip_free_2022-05-16.xlsx'
 
 SLICE = 200  # максимальное кол-во ip адресов для проверки в одном потоке
 
@@ -27,23 +34,23 @@ def main():
 
     devcom = dc.DevicesCommander(devices)
 
-    # devices_for_work = devcom.devices.device_list[141:144]
+    # devices_for_work = devcom.devices.device_list[4:5]
     # devices_for_work += devcom.devices.device_list[131:132]
     devices_for_work = devcom.devices.device_list
     # TODO продумать как devices_for_work передавать во все зависимые методы которые выполняются ниже
 
-    devices_get_sysname(devcom, devices_for_work, print_result=False, check_enabled=True)  # Get "sysname" from devices_for_work
+    # devices_get_sysname(devcom, devices_for_work, print_result=False, check_enabled=True)  # Get "sysname" from devices_for_work
     # devcom.devices.load_export_compact_from_files(date_='2022-03-09')  # Load "export compact" from files...
-    devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
-    devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
+    # devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
+    # devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
     # devcom.devices.save_export_compact_to_files(dir_='ctr_export_compact')  # Save CTR "export compact" to files...
 
-    devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
-    devcom.devices.parse_config()  # Parse config...
+    # devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
+    # devcom.devices.parse_config()  # Parse config...
 
     # devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_free and ip_in_tu...
     #
-    devcom.devices.save_parse_result_to_files()  # Save parse config to files...
+    # devcom.devices.save_parse_result_to_files()  # Save parse config to files...
     # devcom.devices.save_parse_result_to_files(dir_='ctr_output_parse')  # Save CTR parse config to files...
     #
     # devcom.devices.save_icmp_result_to_files('ip_free')  # Save ICMP ip_free result to files...
@@ -69,6 +76,11 @@ def main():
     #                         print_result=True, check_enabled=True)
     # devices.logger.root.info(f'ENABLE PUT commands in CM success.')
 
+    file_with_ip = os.path.join(DIR_PPR_IP_FREE, FILE_NAME_PPR_IP_FREE)
+    devices.logger.root.info(f'DISABLE IP FREE in CM for IP in {file_with_ip}...')
+    devices_set_status_ip_free(devcom, file_with_ip, 'print', print_result=True, check_enabled=False)
+    devices.logger.root.info(f'DISABLE IP FREE in CM success.')
+
 
 def devices_set_status(devcom, devices_for_work, action, print_result, check_enabled):
     for device in devices_for_work:
@@ -76,6 +88,23 @@ def devices_set_status(devcom, devices_for_work, action, print_result, check_ena
         devcom.append_coroutine(comrun1.set_status_interfaces(action, print_result, check_enabled))
     devcom.run()
 
+def devices_set_status_ip_free(devcom, file_with_ip, action, print_result, check_enabled):
+    # ToDO:
+    #  read file "file_with_ip" +
+    #  group by "CMikroTik IP" +
+    #  iterate by group +
+    #  find device by "CMikroTik IP" in devices +
+    #  fill ip_list as "IP remote CPE" from the group +
+    # devices_for_work = devcom.devices.device_list
+    data = pandas.read_excel(file_with_ip)
+    framegr = data[['IP remote CPE', 'City', 'CMikroTik Name',  'CMikroTik IP']].groupby('CMikroTik IP')
+    for cmikrotik in framegr.groups:
+        ip_list = framegr.get_group(cmikrotik)['IP remote CPE'].to_list()
+        devices = devcom.devices.get_devices_by_ip(cmikrotik)
+        for dev in devices:
+            comrun1 = dc.CommandRunner_Put(dev)
+            devcom.append_coroutine(comrun1.set_status_ip_free(action, ip_list, print_result, check_enabled))
+    devcom.run()
 
 def devices_get_disabled_counting(devcom, devices_for_work, print_result, check_enabled):
     print(time.strftime("%H:%M:%S"), 'Get disabled counting for:', get_device_list(devices_for_work), sep='\n')

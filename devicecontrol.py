@@ -146,6 +146,18 @@ class Devices:
             self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
                                 f' transport={config["transport"]}')
 
+    def get_devices_by_ip(self, ip):
+        """
+        Возвращает список устройств с ip address == ip
+        :return: List[Device]
+        """
+        # device_list = []
+        # for device in self.device_list:
+        #     if device.ip == ip:
+        #         device_list.append(device)
+        device_list = [device for device in self.device_list if device.ip == ip]
+        return device_list
+
     def load_export_compact_from_files(self, dir_='', date_=''):
         """
         DONE Метод загружает конфигурацию каждого устройства из отдельного файла в выделенном каталоге dir
@@ -276,6 +288,8 @@ class Devices:
             if ip_result and dir_output:
                 file_icmp = tools.get_file_name(device.city + '_' + device.name, suffix=dir_output,
                                                 dir=dir_output, ext='xlsx')
+                new_file_icmp = tools.get_file_name(device.city + '_' + device.zubbix_name, suffix=dir_output,
+                                                    dir=dir_output + '_new', ext='xlsx')
                 res_json = json.dumps({str(date.today()): ip_result})
                 new_data = pandas.read_json(res_json)
                 if os.path.exists(file_icmp):
@@ -285,6 +299,11 @@ class Devices:
                     data = new_data
                 try:
                     data.to_excel(file_icmp)
+
+                    data['City'] = device.city
+                    data['CMikroTik Name'] = device.zubbix_name
+                    data['CMikroTik IP'] = device.ip
+                    data.to_excel(new_file_icmp)
                     print(time.strftime("%H:%M:%S"), f'save file {file_icmp}')
                 except Exception as err:
                     msg = f'! Error save file {file_icmp} with icmp result. Call method: "save_icmp_result2files"\n' \
@@ -304,16 +323,16 @@ class Devices:
             dir_output = self.dir_output_icmp_ip_in_tu
         if not os.path.exists(dir_output):
             os.mkdir(dir_output)
-        file_summary_icmp = os.path.join(dir_output, 'summary_'+type_ip_list+'.xlsx')
+        file_summary_icmp = os.path.join(dir_output, 'summary_' + type_ip_list + '.xlsx')
         if os.path.exists(file_summary_icmp):
             os.remove(file_summary_icmp)
+        data = None
         for device in self.device_list:
             ip_result = ''
             if type_ip_list == 'ip_free':
                 ip_result = device.icmp_ip_free_result
             elif type_ip_list == 'ip_in_tu':
                 ip_result = device.icmp_ip_in_tu_result
-            data = None
             if ip_result and dir_output:
                 # Город	Name MikroTik	IP MikroTik	remote IP	ICMP
                 res_json = json.dumps({'City': device.city,
@@ -682,7 +701,6 @@ class CommandRunner_Get(DeviceManagement):
                 except:
                     pass
 
-
                 try:
                     resource_dict = get_dict_from_strings(resource)
                     self.device.board_name = resource_dict['board-name']
@@ -692,7 +710,7 @@ class CommandRunner_Get(DeviceManagement):
                     week = int(week[0]) if week else 0
                     day = re.findall(r'(\d*)d', uptime_)
                     day = int(day[0]) if day else 0
-                    self.device.uptime = 7*week + day
+                    self.device.uptime = 7 * week + day
                 except:
                     self.device.connect_error += 'resource=\n' + resource + '\n'
 
@@ -740,6 +758,11 @@ class CommandRunner_Put(DeviceManagement):
     """
     Класс реализует выполнение команд записи на одном устройстве
     """
+
+    # шаблоны используются в send_command_run
+    # {0} - type_int
+    # {1} - int - может выступать как в роли имени интерфейса так и в качестве IP
+    # {2} - where_by
     PUT_DISABLE_INTERFACE_BY_NAME = '/interface {0} disable [find where {2}="{1}"]'  # {0} = [bridge|vlan|eoip]
     PUT_ENABLE_INTERFACE_BY_NAME = '/interface {0} enable [find where {2}="{1}"]'  # {0} = [bridge|vlan|eoip]
     PRINT_INTERFACE_BY_NAME = '/interface {0} print where {2}="{1}"'  # {0} = [bridge|vlan|eoip]
@@ -752,8 +775,11 @@ class CommandRunner_Put(DeviceManagement):
     PUT_DISABLE_BRIDGE_PORT = '/interface bridge port disable [find where {0} ="{1}"]'
     PUT_ENABLE_BRIDGE_PORT = '/interface bridge port enable [find where {0} ="{1}"]'
 
-    PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={0}]'
-    PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={0}]'
+    PRINT_EOIP_BY_REMOTE_IP = '/interface eoip print where remote-address={1}'
+    PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={1}]'
+    PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={1}]'
+
+
 
     def __init__(self, device):
         super().__init__(device)
@@ -792,6 +818,12 @@ class CommandRunner_Put(DeviceManagement):
             ip_ppp = self.device.mikroconfig.ip_ppp_free
             await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_ppp,
                                                    print_result, check_enabled)  # set_status ip_ppp free
+
+    async def set_status_ip_free(self, action, ip_list, print_result, check_enabled):
+        await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_list,
+                                               print_result, check_enabled)  # set_status ppp ip_free
+        await self.set_status_eoip_by_ip(action, 'eoip', ip_list,
+                                               print_result, check_enabled)  # set_status eoip ip_free
 
     async def set_status_interfaces_by_name(self, action, type_int, int_list, where_by=None,
                                             print_result=True, check_enabled=False):
@@ -836,20 +868,6 @@ class CommandRunner_Put(DeviceManagement):
             await self.close_session()
             # DONE отправка команды на ЦМ - set_status_command
 
-    async def disable_eoip_by_remote_ip(self, ip_list):
-        if type(ip_list) is set:
-            ip_list = list(ip_list)
-        for ip in ip_list:
-            self.logger.command_put.info(f'disable_eoip_by_remote_ip: - {ip}')
-        await asyncio.sleep(SLEEP)
-
-    async def enable_eoip_by_remote_ip(self, ip_list):
-        if type(ip_list) is set:
-            ip_list = list(ip_list)
-        for ip in ip_list:
-            self.logger.command_put.info(f'enable_eoip_by_remote_ip: - {ip}')
-        await asyncio.sleep(SLEEP)
-
     async def set_status_ppp_secret_by_ip(self, action, type_int, ip_ppp, print_result=True, check_enabled=False):
         if (not check_enabled) or self.device.enabled:
             if type(ip_ppp) is set:
@@ -863,6 +881,20 @@ class CommandRunner_Put(DeviceManagement):
                 set_status_command = self.PRINT_PPP_SECRET
             if set_status_command:
                 await self.send_command_run(action, type_int, ip_ppp, set_status_command, print_result)
+
+    async def set_status_eoip_by_ip(self, action, type_int, remote_ip_eoip, print_result=True, check_enabled=False):
+        if (not check_enabled) or self.device.enabled:
+            if type(remote_ip_eoip) is set:
+                remote_ip_eoip = list(remote_ip_eoip)
+            set_status_command = ''
+            if action == 'disable':
+                set_status_command = self.PUT_DISABLE_EOIP_BY_REMOTE_IP
+            elif action == 'enable':
+                set_status_command = self.PUT_ENABLE_EOIP_BY_REMOTE_IP
+            elif action == 'print':
+                set_status_command = self.PRINT_EOIP_BY_REMOTE_IP
+            if set_status_command:
+                await self.send_command_run(action, type_int, remote_ip_eoip, set_status_command, print_result)
 
     async def set_status_bridge_port_by_name(self, action, type_int, br_port_list,
                                              print_result=True, check_enabled=False):
