@@ -22,7 +22,8 @@ sections = dict([
     ('ppp_secret', [r'add(?:.+)remote-address=((?:\d+\.){3}\d+)(?: service|\n| )']),  # возвращает remote-address
     ('ip_address', [r'add(?:.+)interface=\"?(.+?)\"?(?: network|\n)',  # возвращает interface
                     r'add address=((?:\d+\.){3}\d+)']),  # возвращает ip
-    ('interface_bonding', [r'add(?:.+)slaves=\"?(.+?)\"?(?: transmit|\n)'])  # возвращает список всех slaves строкой
+    ('interface_bonding', [r'add(?:.+)slaves=\"?(.+?)\"?(?: transmit|\n)',   # возвращает список всех slaves строкой
+                           r'add(?:.+)arp-ip-targets=((?:\d+\.){3}\d+)'])  # возвращает список IP из arp-ip-targets
 ])
 
 

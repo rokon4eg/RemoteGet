@@ -290,10 +290,10 @@ def analyzeDynamicICMP(dir_path, file_mask, output_file):
 
 def main():
     # extract_IP_from_tu_excel()
-    extract_IP_from_tu_service()
+    # extract_IP_from_tu_service()
     # analyzeDynamicICMP('output_icmp_ip_free_new', 'Кемерово*', 'temp_summary_ip_free_dynamic.xlsx')
-    # analyzeDynamicICMP('output_icmp_ip_free_new', '[!~$]*icmp_ip_free*', 'summary_ip_free_dynamic.xlsx')
-    # analyzeDynamicICMP('output_icmp_ip_in_tu_new', '[!~$]*icmp_ip_in_tu*', 'summary_ip_in_tu_dynamic.xlsx')
+    analyzeDynamicICMP('output_icmp_ip_free_new', '[!~$]*icmp_ip_free*', 'summary_ip_free_dynamic.xlsx')
+    analyzeDynamicICMP('output_icmp_ip_in_tu_new', '[!~$]*icmp_ip_in_tu*', 'summary_ip_in_tu_dynamic.xlsx')
 
 
 if __name__ == "__main__":

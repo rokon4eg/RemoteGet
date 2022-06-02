@@ -146,9 +146,9 @@ class Devices:
             self.logger.tu.info(f'load_from_excel: {dev.city} {dev.ip} ({node["NAME_DEVICE"]}) ,'
                                 f' transport={config["transport"]}')
 
-    def get_devices_by_ip(self, ip):
+    def find_devices_by_ip(self, ip):
         """
-        Возвращает список устройств с ip address == ip
+        Возвращает список device из device_list с ip address == ip
         :return: List[Device]
         """
         # device_list = []
@@ -298,7 +298,7 @@ class Devices:
                 else:
                     data = new_data
                 try:
-                    data.to_excel(file_icmp)
+                    # data.to_excel(file_icmp)
 
                     data['City'] = device.city
                     data['CMikroTik Name'] = device.zubbix_name
@@ -381,6 +381,7 @@ class Device:
         self.result_parsing = ''
         self.icmp_ip_free_result = dict()
         self.icmp_ip_in_tu_result = dict()
+        self.ip_stats = dict()  #  {ip: {'tx-byte': 0, 'rx-byte': 0, 'disabled': False}}
         self.export_compact = ''
         self.ip_ppp_active = set()
         self.mikroconfig: MikrotikConfig = None
@@ -569,6 +570,24 @@ class CommandRunner_Get(DeviceManagement):
     GET_COUNT_INTERFACE_DISABLED = '/interface print count-only where disabled'
     GET_COUNT_PPP_ACTIVE = '/ppp active print count-only'
 
+    #{1}=last-link-down-time|last-link-up-time|
+    #    link-downs|
+    #    rx-byte|tx-byte|
+    #    rx-packet|tx-packet|
+    #    rx-drop|tx-drop|
+    #    tx-queue-drop|
+    #    rx-error|tx-error|
+    #    fp-rx-byte|fp-tx-byte|
+    #    fp-rx-packet|fp-tx-packet
+    GET_EOIP_STATS_BY_REMOTE_IP = ':local eoipname [/interface eoip get [find where remote-address={0}] name];' \
+                                  ' :put [/interface get [find where name =$eoipname] {1}];'
+    GET_MANY_EOIP_STATS_BY_REMOTE_IP = ':local txorrx 0; ' \
+                                       ':local eoipnames [/interface eoip print as-value ' \
+                                       'where remote-address=%s]; ' \
+                                       ':foreach eoip in=$eoipnames do={ :set ($txorrx) ' \
+                                       '($txorrx+([/interface get [find where name =$eoip->"name"] %s])) }; ' \
+                                       ':put $txorrx ;'
+
     def __init__(self, device):
         super().__init__(device)
         self.logger = Logger()
@@ -589,7 +608,8 @@ class CommandRunner_Get(DeviceManagement):
                     for ip in ip_list:
                         count += 1
                         msg = f'Check {count}/{len(ip_list)} ICMP from {self.device.ip} to host {ip} - %s'
-                        response = await self.send_command(self.SEND_PING % ip, print_result=print_result,
+                        response = await self.send_command(self.SEND_PING % ip,
+                                                           print_result=print_result,
                                                            is_need_open=False)
                         # TODO IndexError: list index out of range
                         try:
@@ -752,6 +772,49 @@ class CommandRunner_Get(DeviceManagement):
     #         print(err)
     #     except asyncio.exceptions.TimeoutError:
     #         print("asyncio.exceptions.TimeoutError", device["host"])
+    async def get_stats_by_ip(self, ip_list, print_result, check_enabled):
+        async def get_stats_many_int_by_ip(self, ip, items, print_result):
+            """
+            Считает суммарную статистику по нескольким интерфейсам.
+            Только для цифровых значений
+            """
+            items_stat = {}
+            for item in items:
+                command_ = self.GET_MANY_EOIP_STATS_BY_REMOTE_IP % (ip, item)
+                response_ = await self.send_command(command_, print_result=print_result, is_need_open=False)
+                if response_ is not None:
+                    items_stat.update({item: response_.result})
+            return items_stat
+
+        if (not check_enabled) or self.device.enabled:
+            try:
+                count = 0
+                await self.open_session()
+                if self.session.isalive():
+                    for ip in ip_list:
+                        count += 1
+                        msg = f'Get {count}/{len(ip_list)} stats EOIP from {self.device.ip} for remote ip {ip}'
+                        command = self.GET_EOIP_STATS_BY_REMOTE_IP.format(ip, '')
+                        response = await self.send_command(command, print_result=print_result, is_need_open=False)
+                        if response is not None:
+                            try:
+                                print(msg)
+                                if response.result == 'no such item':
+                                    resp = 'ip not found in CM'
+                                elif response.result == 'invalid internal item number':
+                                    resp = await get_stats_many_int_by_ip(self, ip, ['rx-byte'],
+                                                                          print_result=print_result)
+                                    # resp = 'many eoip in this remote ip'
+                                else:
+                                    resp = dict([stat_item.split('=', 1) for stat_item in response.result.split(';')])
+                            except Exception:
+                                resp = 'error get stats'
+                            self.device.ip_stats.update({ip: resp})
+            finally:
+                message = f'Get stats EOIP for {len(ip_list)} host from {self.device.ip} ({self.device.name}) complete!'
+                print(message)
+                self.logger.root.info(message)
+                await self.close_session()
 
 
 class CommandRunner_Put(DeviceManagement):
@@ -776,10 +839,9 @@ class CommandRunner_Put(DeviceManagement):
     PUT_ENABLE_BRIDGE_PORT = '/interface bridge port enable [find where {0} ="{1}"]'
 
     PRINT_EOIP_BY_REMOTE_IP = '/interface eoip print where remote-address={1}'
+
     PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={1}]'
     PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={1}]'
-
-
 
     def __init__(self, device):
         super().__init__(device)
@@ -823,7 +885,7 @@ class CommandRunner_Put(DeviceManagement):
         await self.set_status_ppp_secret_by_ip(action, 'ppp secret', ip_list,
                                                print_result, check_enabled)  # set_status ppp ip_free
         await self.set_status_eoip_by_ip(action, 'eoip', ip_list,
-                                               print_result, check_enabled)  # set_status eoip ip_free
+                                         print_result, check_enabled)  # set_status eoip ip_free
 
     async def set_status_interfaces_by_name(self, action, type_int, int_list, where_by=None,
                                             print_result=True, check_enabled=False):
@@ -893,6 +955,7 @@ class CommandRunner_Put(DeviceManagement):
                 set_status_command = self.PUT_ENABLE_EOIP_BY_REMOTE_IP
             elif action == 'print':
                 set_status_command = self.PRINT_EOIP_BY_REMOTE_IP
+                # set_status_command = self.PRINT_EOIP_STATS_BY_REMOTE_IP
             if set_status_command:
                 await self.send_command_run(action, type_int, remote_ip_eoip, set_status_command, print_result)
 
@@ -953,10 +1016,10 @@ class CommandRunner_Remove(DeviceManagement):
                 int_count = [f'{int_[0]} = {int_[1].result}' for int_ in int_names_and_count if int_[1].result != '0']
                 msg = '\n'.join(int_count)
                 if print_result:
-                    print(time.strftime("%H:%M:%S"), f'Return disabled counting from '
+                    print(time.strftime("%H:%M:%S"), f'Disabled interfaces in '
                                                      f'{self.device.city} - {self.device.ip} - '
                                                      f'({self.device.name}): {total}', msg, sep='\n')
-                self.logger.device_com.info(f'Return disabled counting from '
+                self.logger.device_com.info(f'Disabled interfaces in '
                                             f'{self.device.city} - {self.device.ip} - '
                                             f'({self.device.name}): {total}\n{msg}')
             except Exception as err:

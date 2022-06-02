@@ -114,8 +114,9 @@ class MikrotikConfig:
         ip_in_tu_ = set()
         _ip_ppp = set(parse_section(regex_section.ppp_secret, self.config))
         _ip_eoip = set(parse_section(regex_section.interface_eoip, self.config, 3))
+        _ip_bonding = set(parse_section(regex_section.interface_bonding, self.config, 2))
         ip_ppp_free_ = _ip_ppp - _ip_eoip - self.ip_active_ppp
-        ip_all = (_ip_ppp | _ip_eoip)
+        ip_all = (_ip_ppp | _ip_eoip | _ip_bonding)
         ip_free_.update(ip_all - self.ip_from_tu - self.ip_active_ppp)
         ip_in_tu_ = ip_all & self.ip_from_tu
         return ip_free_, ip_in_tu_, ip_ppp_free_
