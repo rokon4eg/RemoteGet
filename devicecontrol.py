@@ -14,6 +14,7 @@ import tools
 from parse_config.parse_config import MikrotikConfig, GeneralParam
 
 SLEEP = 0.1
+TIME_OUT = 50
 
 
 class SingletonMeta(type):
@@ -98,8 +99,8 @@ class Devices:
     config_example['auth_strict_key'] = False
     config_example['platform'] = 'mikrotik_routeros'
     config_example['transport'] = 'asyncssh'
-    config_example['timeout_socket'] = 50
-    config_example['timeout_transport'] = 50
+    config_example['timeout_socket'] = TIME_OUT
+    config_example['timeout_transport'] = TIME_OUT
 
     def __init__(self):
         self.device_list: List[Device] = []
@@ -801,10 +802,9 @@ class CommandRunner_Get(DeviceManagement):
                                 print(msg)
                                 if response.result == 'no such item':
                                     resp = 'ip not found in CM'
-                                elif response.result == 'invalid internal item number':
+                                elif response.result == 'invalid internal item number':  # many eoip in this remote ip
                                     resp = await get_stats_many_int_by_ip(self, ip, ['rx-byte'],
                                                                           print_result=print_result)
-                                    # resp = 'many eoip in this remote ip'
                                 else:
                                     resp = dict([stat_item.split('=', 1) for stat_item in response.result.split(';')])
                             except Exception:
@@ -842,6 +842,12 @@ class CommandRunner_Put(DeviceManagement):
 
     PUT_DISABLE_EOIP_BY_REMOTE_IP = '/interface eoip disable [find where remote-address={1}]'
     PUT_ENABLE_EOIP_BY_REMOTE_IP = '/interface eoip enable [find where remote-address={1}]'
+
+    RESET_EOIP_STATS_BY_REMOTE_IP = ':local eoipname [/interface eoip get [find where remote-address={0}] name];' \
+                                    ' /interface reset-counters $eoipname;'
+
+    RESET_MANY_EOIP_STATS_BY_REMOTE_IP = ':local eoipnames [/interface eoip print as-value where remote-address=%s];' \
+                                         ' :foreach eoip in=$eoipnames do={/interface reset-counters ($eoip->"name") };'
 
     def __init__(self, device):
         super().__init__(device)
@@ -973,6 +979,40 @@ class CommandRunner_Put(DeviceManagement):
                 set_status_command = self.PRINT_BRIDGE_PORT
             if set_status_command:
                 await self.send_command_run(action, type_int, br_port_list, set_status_command, print_result)
+
+    async def reset_stats_by_ip(self, ip_list, print_result, check_enabled):
+        async def reset_stats_many_int_by_ip(self, ip, print_result):
+            """
+            Сбрасывает счетчики трафика по нескольким интерфейсам.
+            """
+            command_ = self.RESET_MANY_EOIP_STATS_BY_REMOTE_IP % ip
+            await self.send_command(command_, print_result=print_result, is_need_open=False)
+
+        if (not check_enabled) or self.device.enabled:
+            try:
+                count = 0
+                await self.open_session()
+                if self.session.isalive():
+                    for ip in ip_list:
+                        count += 1
+                        msg = f'Reset counters {count}/{len(ip_list)} stats EOIP from {self.device.ip} for remote ip {ip}'
+                        command = self.RESET_EOIP_STATS_BY_REMOTE_IP.format(ip)
+                        response = await self.send_command(command, print_result=print_result, is_need_open=False)
+                        if response is not None:
+                            try:
+                                print(msg)
+                                if response.result == 'no such item':
+                                    resp = 'ip not found in CM'
+                                elif response.result == 'invalid internal item number':  # many eoip in this remote ip
+                                    resp = await reset_stats_many_int_by_ip(self, ip, print_result=print_result)
+                            except Exception:
+                                resp = 'error get stats'
+            finally:
+                message = f'Reset counters stats EOIP for {len(ip_list)} host ' \
+                          f'from {self.device.ip} ({self.device.name}) complete!'
+                print(message)
+                self.logger.root.info(message)
+                await self.close_session()
 
 
 class CommandRunner_Remove(DeviceManagement):
