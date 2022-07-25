@@ -1,5 +1,6 @@
 import json
 import os, pandas, numpy
+import re
 import time
 
 cities_ekt = ('Екатеринбург', 'Пермь', 'Уфа', 'Хабаровск', 'Тюмень', 'Челябинск', 'Самара', 'Нижний Тагил', 'Ижевск',
@@ -288,13 +289,42 @@ def analyzeDynamicICMP(dir_path, file_mask, output_file):
     all_city_icmp_data.to_excel(os.path.join(dir_path, output_file))
 
 
+def parse_ip_remote_cpe_from_file(dir, filename, output_file):
+    data_with_ip = ExternalDataService(os.path.join(dir, filename))
+    remote_ip_list = []
+    city_name_list = []
+    cmikrotik_name_list = []
+    cmikrotik_ip_list = []
+    ip_in_cpe_list = []
+    interface_in_cpe_list = []
+    for node in data_with_ip.data.iloc:
+        ip_int_list = (re.findall(r'address=([\d\.]+)\/.*?interface=([^;]+)(?:;|$)', node['IP addresses in CPE']))
+        for ip_int in ip_int_list:
+            remote_ip_list.append(node['Remote IP'])
+            city_name_list.append(node['CityCM'])
+            cmikrotik_name_list.append(node['CMikroTik Name'])
+            cmikrotik_ip_list.append(node['CMikroTik IP'])
+            ip_in_cpe_list.append(ip_int[0])
+            interface_in_cpe_list.append(ip_int[1])
+
+    d = {'Remote IP': remote_ip_list,
+         'CityCM': city_name_list,
+         'CMikroTik Name': cmikrotik_name_list,
+         'CMikroTik IP': cmikrotik_ip_list,
+         'IP in CPE': ip_in_cpe_list,
+         'Interface in CPE': interface_in_cpe_list
+         }
+    data_with_ip_in_cpe = pandas.read_json(json.dumps(d))
+    data_with_ip_in_cpe.to_excel(os.path.join(dir, output_file))
+
+
 def main():
     # extract_IP_from_tu_excel()
     # extract_IP_from_tu_service()
     # analyzeDynamicICMP('output_icmp_ip_free_new', 'Кемерово*', 'temp_summary_ip_free_dynamic.xlsx')
-    analyzeDynamicICMP('output_icmp_ip_free_new', '[!~$]*icmp_ip_free*', 'summary_ip_free_dynamic.xlsx')
-    analyzeDynamicICMP('output_icmp_ip_in_tu_new', '[!~$]*icmp_ip_in_tu*', 'summary_ip_in_tu_dynamic.xlsx')
-
+    # analyzeDynamicICMP('output_icmp_ip_free_new', '[!~$]*icmp_ip_free*', 'summary_ip_free_dynamic.xlsx')
+    # analyzeDynamicICMP('output_icmp_ip_in_tu_new', '[!~$]*icmp_ip_in_tu*', 'summary_ip_in_tu_dynamic.xlsx')
+    parse_ip_remote_cpe_from_file('ip_free_with_ping', 'ip_free.xlsx', output_file='ip_free_with_ip_in_cpe.xlsx')
 
 if __name__ == "__main__":
     main()

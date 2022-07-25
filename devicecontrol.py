@@ -382,7 +382,7 @@ class Device:
         self.result_parsing = ''
         self.icmp_ip_free_result = dict()
         self.icmp_ip_in_tu_result = dict()
-        self.ip_stats = dict()  #  {ip: {'tx-byte': 0, 'rx-byte': 0, 'disabled': False}}
+        self.ip_stats = dict()  # {ip: {'tx-byte': 0, 'rx-byte': 0, 'disabled': False}}
         self.export_compact = ''
         self.ip_ppp_active = set()
         self.mikroconfig: MikrotikConfig = None
@@ -391,6 +391,7 @@ class Device:
         self.count_interface_disabled = -1
         self.count_ppp_active = -1
         self.logger = Logger()
+        self.all_ip_with_mask_30 = None
 
     def get_summary_parse_result(self):
         res = dict()
@@ -565,13 +566,14 @@ class CommandRunner_Get(DeviceManagement):
     GET_NAME = '/system identity print'
     GET_ROUTERBOARD = '/system routerboard print'
     GET_RESOURCE = '/system resource print'
+    GET_ALL_IP_WITH_MASK_30 = ':local ips [/ip address print as-value where !disabled and address~"/30"]; :foreach ip in=$ips do={ put ($ip)}; '
 
     GET_COUNT_INTERFACE = '/interface print count-only'
     GET_COUNT_INTERFACE_ACTIVE = '/interface print count-only where running'
     GET_COUNT_INTERFACE_DISABLED = '/interface print count-only where disabled'
     GET_COUNT_PPP_ACTIVE = '/ppp active print count-only'
 
-    #{1}=last-link-down-time|last-link-up-time|
+    # {1}=last-link-down-time|last-link-up-time|
     #    link-downs|
     #    rx-byte|tx-byte|
     #    rx-packet|tx-packet|
@@ -815,6 +817,22 @@ class CommandRunner_Get(DeviceManagement):
                 print(message)
                 self.logger.root.info(message)
                 await self.close_session()
+
+    async def get_all_ip_with_mask_30(self, print_result=False, check_enabled=False):
+        regx = r'.+address=((?:\d+\.){3}\d+)(?:.+?)interface=(.+?);'
+        if (not check_enabled) or self.device.enabled:
+            response = await self.send_command(self.GET_ALL_IP_WITH_MASK_30, print_result=print_result)
+            res = re.findall(regx, response.result)
+            if response is not None:
+                # response_dict = dict([item.split('=') for item in response.result.split(';')])
+                # address = res[0]
+                # interface = res[1]
+                self.device.all_ip_with_mask_30 = res
+                self.logger.device_com.info(f'Host with IP {self.device.ip} ({self.device.name})'
+                                            f' return all_ip_with_mask_30')
+            else:
+                self.logger.device_com.warning(f'Host with IP {self.device.ip} ({self.device.name})'
+                                               f' don`t return all_ip_with_mask_30')
 
 
 class CommandRunner_Put(DeviceManagement):

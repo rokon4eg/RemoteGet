@@ -1,3 +1,4 @@
+import json
 import os.path
 import time
 from datetime import datetime
@@ -11,15 +12,15 @@ import tools
 # REMOTE_NODE_FILE = 'remote_node.yaml'
 REMOTE_CM_LIST = 'cm_list_for_run_new.xlsx'
 # REMOTE_CM_LIST = 'cm_list_for_run_test.xlsx'
-DISABLE_REMOTE_CM_LIST = 'cm_list_disable_2022-03-30.xlsx'
-REMOVE_REMOTE_CM_LIST = 'cm_list_remove_2022-04-11.xlsx'
+# DISABLE_REMOTE_CM_LIST = 'cm_list_disable_2022-03-30.xlsx'
+# REMOVE_REMOTE_CM_LIST = 'cm_list_remove_2022-04-11.xlsx'
 
-REMOTE_CTR_LIST = 'ctr_list_for_run.xlsx'
+# REMOTE_CTR_LIST = 'ctr_list_for_run.xlsx'
 
 DIR_PPR_IP_FREE = 'ppr_ip_free'
-FILE_NAME_PPR_IP_FREE = 'ppr_ip_free_2022-06-21.xlsx'
+# FILE_NAME_PPR_IP_FREE = 'ppr_ip_free_2022-07-06_after_reset_traffics.xlsx'
 FILE_NAME_RESET_COUNTERS = 'reset_counters.xlsx'
-# FILE_NAME_PPR_IP_FREE = 'ppr_ip_free_2022-05-25_enable_Казань.xlsx'
+FILE_NAME_PPR_IP_FREE = 'ppr_ip_free_2022-07-11.xlsx'
 # FILE_NAME_PPR_IP_FREE = 'summary_ip_free_resoult.xlsx'
 # FILE_NAME_PPR_IP_FREE = 'ppr_ip_free_test.xlsx'
 
@@ -32,7 +33,7 @@ def main():
     # devices.load_from_yaml(REMOTE_NODE_FILE)
 
     # devices.load_from_excel(REMOTE_CTR_LIST)
-
+    #
     devices.load_from_excel(REMOTE_CM_LIST)
 
     # devices.load_from_excel(DISABLE_REMOTE_CM_LIST)
@@ -45,18 +46,18 @@ def main():
     devices_for_work = devcom.devices.device_list
 
     devices_get_sysname(devcom, devices_for_work, print_result=False, check_enabled=True)  # Get "sysname"
-    # # # devcom.devices.load_export_compact_from_files(date_='2022-03-09')  # Load "export compact" from files...
-    devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
+    # # devcom.devices.load_export_compact_from_files(date_='2022-03-09')  # Load "export compact" from files...
+    # devices_get_config(devcom, devices_for_work)  # Get "config" from Remote CM
     # devcom.devices.save_export_compact_to_files()  # Save "export compact" to files...
-    # # devcom.devices.save_export_compact_to_files(dir_='ctr_export_compact')  # Save CTR "export compact" to files...
+    # devcom.devices.save_export_compact_to_files(dir_='ctr_export_compact')  # Save CTR "export compact" to files...
     # #
-    devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
-    devcom.devices.parse_config()  # Parse config...
+    # devices_get_ppp_active_and_counting(devcom, devices_for_work, print_result=False)  # Get "ppp active" and_counting
+    # devcom.devices.parse_config()  # Parse config...
     # #
     # # devices_check_icmp(devcom, devices_for_work)  # Check ICMP ip_free and ip_in_tu...
     # # #
-    devcom.devices.save_parse_result_to_files()  # Save parse config to files...
-    # # devcom.devices.save_parse_result_to_files(dir_='ctr_output_parse')  # Save CTR parse config to files...
+    # devcom.devices.save_parse_result_to_files()  # Save parse config to files...
+    # devcom.devices.save_parse_result_to_files(dir_='ctr_output_parse')  # Save CTR parse config to files...
     # #
     # devcom.devices.save_icmp_result_to_files('ip_free')  # Save ICMP ip_free result to files...
     # devcom.devices.save_icmp_result_to_files('ip_in_tu')  # Save ICMP ip_in_tu result to files...
@@ -74,11 +75,12 @@ def main():
     # # devices_set_status(devcom, devices_for_work, 'print', print_result=True, check_enabled=True)
     # devices_set_status(devcom, devices_for_work, 'disable', print_result=False, check_enabled=True)
     # devices.logger.root.info(f'DISABLE PUT commands in CM success.')
+    # devices_get_disabled_counting(devcom, devices_for_work, print_result=True, check_enabled=True)
 
     # devices.logger.root.info(f'ENABLE PUT commands in CM at {len(devices_for_work)} hosts...')
     # # devices_set_status(devcom, devices_for_work, 'enable', print_result=False, check_enabled=True)
     # # devices_run_any_command(devcom, devices_for_work, '/system identity print', print_result=True, check_enabled=True)
-    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-06-28"',
+    # devices_run_any_command(devcom, devices_for_work, '/interface bridge add name="bridge-temp-for-backup-2022-07-11"',
     #                         print_result=True, )
     # devices.logger.root.info(f'ENABLE PUT commands in CM success.')
 
@@ -98,13 +100,13 @@ def main():
     # # get_stats_by_file_with_ip(devcom, file_with_ip, output_file, print_result=True, check_enabled=True, columns=None)
 
     # devices_set_status_ip_free(devcom, file_with_ip, 'print', print_result=True, check_enabled=False, columns=columns)
-    # devices_run_any_command(devcom, devices_for_work_from_ip_free,
-    #                         '/interface bridge add name="bridge-temp-for-backup-2022-06-21"', print_result=True)
-                            # '/interface bridge remove [find where name="bridge-temp-for-backup-2022-06-08"]', print_result = True)
+    # devices_run_any_command(devcom, devices_for_work,
+    #                         '/interface bridge add name="bridge-temp-for-backup-2022-07-11"', print_result=True)
+                            # '/interface bridge remove [find where name="bridge-temp-for-backup-2022-07-11"]', print_result = True)
 
-    # devices_remove_disabled(devcom, devices_for_work_from_ip_free, print_result=True, check_enabled=False)
+    # devices_remove_disabled(devcom, devices_for_work, print_result=True, check_enabled=True)
 
-    # devices_set_status_ip_free(devcom, file_with_ip, 'disable', print_result=True, check_enabled=False, columns=columns)
+    # devices_set_status_ip_free(devcom, file_with_ip, 'disable', print_result=True, check_enabled=True, columns=columns)
     # devices_get_disabled_counting(devcom, devices_for_work_from_ip_free, print_result=True, check_enabled=True)
 
     # devices_set_status_ip_free(devcom, file_with_ip, 'enable', print_result=True, check_enabled=False, columns=columns)
@@ -115,6 +117,8 @@ def main():
     output_file = os.path.join(DIR_PPR_IP_FREE, 'with_stats_' + FILE_NAME_RESET_COUNTERS)
     # devices_reset_counters(devcom, file_reset_counters, print_result=True, check_enabled=True, columns=None)
     # get_stats_by_file_with_ip(devcom, file_reset_counters, output_file, print_result=False, check_enabled=True, columns=None)
+
+    devices_get_all_ip_with_mask_30(devcom, devices_for_work, print_result=True, check_enabled=True, output_file='all_ip_with_mask_30.xlsx')
 
 
 def devices_set_status(devcom, devices_for_work, action, print_result, check_enabled):
@@ -323,6 +327,44 @@ def get_devices_for_work_from_file_with_ip(devcom, file_with_ip, columns):
         devices_for_work = devcom.devices.find_devices_by_ip(cmikrotik)
         all_devices_for_work += devices_for_work
     return all_devices_for_work
+
+
+def devices_get_all_ip_with_mask_30(devcom, devices_for_work, print_result, check_enabled, output_file):
+    for device in devices_for_work:
+        comrun1 = dc.CommandRunner_Get(device)
+        devcom.append_coroutine(comrun1.get_all_ip_with_mask_30(print_result=print_result, check_enabled=check_enabled))
+    devcom.run()
+
+    city_name_list = []
+    cmikrotik_name_list = []
+    cmikrotik_ip_list = []
+    ip_in_cpe_list = []
+    interface_in_cm_list = []
+    for device in devices_for_work:
+        # print(device.all_ip_with_mask_30)
+        if device.all_ip_with_mask_30:
+            for ip_int in device.all_ip_with_mask_30:
+                city_name_list.append(device.city)
+                cmikrotik_name_list.append(device.zubbix_name)
+                cmikrotik_ip_list.append(device.ip)
+                ip = ip_int[0]
+                temp_ip = ip.rsplit('.', 1)
+                last_oktet = int(temp_ip[1])
+                temp_ip[1] = str(last_oktet + 1)
+                ip = '.'.join(temp_ip)
+                ip_in_cpe_list.append(ip)
+                interface_in_cm_list.append(ip_int[1])
+
+    d = {'CityCM': city_name_list,
+         'CMikroTik Name': cmikrotik_name_list,
+         'CMikroTik IP': cmikrotik_ip_list,
+         'IP in CPE': ip_in_cpe_list,
+         'Interface in CM': interface_in_cm_list
+         }
+
+    data_all_ip_with_mask_30 = pandas.read_json(json.dumps(d))
+    data_all_ip_with_mask_30.to_excel(output_file)
+
 
 
 if __name__ == "__main__":
